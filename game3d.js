@@ -97,8 +97,7 @@ function animate(){requestAnimationFrame(animate);if(!renderer)return;const dt=M
  if(phase==="collapse"){const elapsed=(clockNow()-collapseAt)/1000;const p=clamp(elapsed/8,0,1);scene.background.lerp(new THREE.Color("#111b38"),p*.12);scene.fog.color.lerp(new THREE.Color("#1a2441"),p*.08);camera.position.x=mara.position.x+7+Math.sin(elapsed*8)*.045;camera.position.y=5.1+Math.sin(elapsed*11)*.025;
  // The aircraft lifts without a pilot; runway fractures into luminous segments.
  plane.position.y=.7+Math.sin(elapsed*2)*.15+elapsed*.18;plane.rotation.z=Math.sin(elapsed*1.7)*.06;plane.userData.prop.rotation.z+=.6;
- for(let i=0;i<12;i++){const obj=scene.children.filter(o=>o.isMesh&&o.geometry?.type==="BoxGeometry")[i];if(obj&&obj.position.z<22){obj.position.y+=.004+elapsed*.0007;obj.rotation.z+=.0007}}
- const ring=new THREE.Mesh(new THREE.TorusGeometry(1+p*28,.08,8,120),new THREE.MeshBasicMaterial({color:"#f1d28b",transparent:true,opacity:1-p}));ring.rotation.x=Math.PI/2;ring.position.set(0,.3,19);scene.add(ring);setTimeout(()=>{scene.remove(ring);ring.geometry.dispose();ring.material.dispose()},60);
+ collapseRing.scale.setScalar(.01+p*28);collapseRing.material.opacity=1-p;
  if(elapsed>8&&!collapseDone){collapseDone=true;finishCollapse()}}
  if(plane?.userData.prop&&phase!=="collapse")plane.userData.prop.rotation.z+=.04;
  if(beacon)beacon.children[1].scale.setScalar(1+Math.sin(t*3)*.12);
