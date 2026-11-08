@@ -12,9 +12,10 @@ function ctLoad(){
  document.querySelector("#welcome .panel h2").textContent=ctNow.t;
  document.querySelector("#welcome .panel p").textContent="Enter a new life, investigate an unfamiliar situation, make a difficult decision and discover what your presence changes.";
  document.querySelector("#briefing h1").textContent=ctNow.t;
- document.querySelectorAll("#briefing p")[0].textContent=ctNow.r;
- document.querySelectorAll("#briefing p")[1].textContent=ctNow.s;
+ document.querySelectorAll("#briefing p")[1].textContent=ctNow.r;
+ document.querySelectorAll("#briefing p")[2].textContent=ctNow.s;
  document.querySelector("#cockpit h1").textContent="Read the situation.";
+ document.querySelector("#cockpit > p:not(.small)").textContent="Investigate all three sources before making your decision.";
  document.querySelector("#cockpit .scene").innerHTML="<span>YOUR ENVIRONMENT</span>";
  ["nav","radio","log"].forEach((id,i)=>{document.querySelector("#"+id+" strong").textContent=ctNow.o[i][0];document.querySelector("#"+id+" span").textContent="Tap to investigate";});
  document.querySelector("#decision .scene").innerHTML="<span>A DECISION POINT</span>";
