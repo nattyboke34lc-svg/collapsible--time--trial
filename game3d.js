@@ -2,7 +2,7 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 
 const $=id=>document.getElementById(id);
 const host=$("game"),prompt=$("prompt"),mission=$("mission");
-let renderer,scene,camera,clock,mara,plane,radio,beacon,started=false,phase="intro",near="",collapseAt=0,collapseDone=false;
+let renderer,scene,camera,clock,mara,plane,radio,beacon,collapseRing,started=false,phase="intro",near="",collapseAt=0,collapseDone=false;
 const keys=new Set(),touch=new Set(),clockNow=()=>performance.now();
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const mat=(color,rough=.78,metal=0)=>new THREE.MeshStandardMaterial({color,roughness:rough,metalness:metal});
@@ -72,7 +72,7 @@ function buildWorld(){
  box(scene,-5,.55,-5,2.4,1.1,1.3,mat("#334b58"));box(scene,-5,1.15,-5,.8,.12,.55,mats.dark);
  radio=new THREE.Group();radio.position.set(-5,1.3,-5);scene.add(radio);const lamp=sphere(radio,0,.2,0,.13,mat("#efbd6d",.22,.3));lamp.material.emissive=new THREE.Color("#e4a34d");lamp.material.emissiveIntensity=1.8;
  label("RADIO SIGNAL",-5,3,-5);
- beacon=new THREE.Group();beacon.position.set(0,.2,19);scene.add(beacon);cylinder(beacon,0,1,0,.15,.22,2,mat("#d6d2c4"));sphere(beacon,0,2.1,0,.22,mats.gold);label("RUNWAY BEACON",0,3.1,19);
+ beacon=new THREE.Group();beacon.position.set(0,.2,19);scene.add(beacon);cylinder(beacon,0,1,0,.15,.22,2,mat("#d6d2c4"));sphere(beacon,0,2.1,0,.22,mats.gold);label("RUNWAY BEACON",0,3.1,19);collapseRing=new THREE.Mesh(new THREE.TorusGeometry(1,.08,8,120),new THREE.MeshBasicMaterial({color:"#f1d28b",transparent:true,opacity:0}));collapseRing.rotation.x=Math.PI/2;collapseRing.position.set(0,.25,19);collapseRing.scale.setScalar(.01);scene.add(collapseRing);
  // Plane name mark
  label("MARA'S AIRCRAFT",0,3.2,5);
  // cinematic volumetric-ish clouds
@@ -94,7 +94,7 @@ function animate(){requestAnimationFrame(animate);if(!renderer)return;const dt=M
  const dRadio=dist(mara.position,radio.position),dBeacon=dist(mara.position,beacon.position);
  if(phase==="explore"&&dRadio<3.2)setPrompt("E / ACT  ·  LISTEN TO THE RADIO");else if(phase==="heard"&&dBeacon<3.8)setPrompt("E / ACT  ·  TOUCH THE RUNWAY BEACON");else if(phase==="explore")setPrompt("");else if(phase==="heard")setPrompt("Reach the pulsing beacon beyond the aircraft.");
  }
- if(phase==="collapse"){const elapsed=(clockNow()-collapseAt)/1000;const p=clamp(elapsed/8,0,1);scene.background.lerp(new THREE.Color("#111b38"),p*.12);scene.fog.color.lerp(new THREE.Color("#1a2441"),p*.08);camera.position.x+=(Math.sin(elapsed*2)*.035);camera.position.y+=Math.sin(elapsed*3)*.018;
+ if(phase==="collapse"){const elapsed=(clockNow()-collapseAt)/1000;const p=clamp(elapsed/8,0,1);scene.background.lerp(new THREE.Color("#111b38"),p*.12);scene.fog.color.lerp(new THREE.Color("#1a2441"),p*.08);camera.position.x=mara.position.x+7+Math.sin(elapsed*8)*.045;camera.position.y=5.1+Math.sin(elapsed*11)*.025;
  // The aircraft lifts without a pilot; runway fractures into luminous segments.
  plane.position.y=.7+Math.sin(elapsed*2)*.15+elapsed*.18;plane.rotation.z=Math.sin(elapsed*1.7)*.06;plane.userData.prop.rotation.z+=.6;
  for(let i=0;i<12;i++){const obj=scene.children.filter(o=>o.isMesh&&o.geometry?.type==="BoxGeometry")[i];if(obj&&obj.position.z<22){obj.position.y+=.004+elapsed*.0007;obj.rotation.z+=.0007}}
