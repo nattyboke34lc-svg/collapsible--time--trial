@@ -1,138 +1,219 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 
 const $=id=>document.getElementById(id);
-const host=$("game"),prompt=$("prompt"),mission=$("mission");
-let renderer,scene,camera,clock,mara,plane,radio,beacon,collapseRing,planeEcho,rift,started=false,phase="intro",near="",collapseAt=0,collapseDone=false,moveTarget=null,storyIndex=0,storyCameraTarget=null,storyLookTarget=null;
-const keys=new Set(),touch=new Set(),clockNow=()=>performance.now();
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
-const mat=(color,rough=.78,metal=0)=>new THREE.MeshStandardMaterial({color,roughness:rough,metalness:metal});
-const mats={ground:mat("#718477"),concrete:mat("#626f72"),cream:mat("#c8c0aa"),roof:mat("#66584e"),glass:mat("#31566a",.24,.2),suit:mat("#7894a3",.68,.12),dark:mat("#263744"),skin:mat("#b77e60"),hair:mat("#29272a"),gold:mat("#e4c27b",.3,.55),white:mat("#dce4e6",.35,.16)};
-function box(parent,x,y,z,w,h,d,m,rx=0,ry=0,rz=0){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.rotation.set(rx,ry,rz);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
-function sphere(parent,x,y,z,r,m,scale=[1,1,1]){const o=new THREE.Mesh(new THREE.SphereGeometry(r,24,18),m);o.position.set(x,y,z);o.scale.set(...scale);o.castShadow=true;parent.add(o);return o}
-function cylinder(parent,x,y,z,rt,rb,h,m,n=20){const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,n),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
-function label(text,x,y,z){const c=document.createElement("canvas");c.width=512;c.height=128;const g=c.getContext("2d");g.fillStyle="#081a29dd";g.fillRect(0,0,512,128);g.strokeStyle="#dfc487";g.lineWidth=3;g.strokeRect(4,4,504,120);g.fillStyle="#f2dfb2";g.font="bold 34px Arial";g.textAlign="center";g.fillText(text,256,78);const tex=new THREE.CanvasTexture(c);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));s.position.set(x,y,z);s.scale.set(3.3,.82,1);scene.add(s);return s}
-function makeMara(){const g=new THREE.Group();scene.add(g);g.position.set(-5,0,3);
- const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.31,.52,8,18),mats.suit);torso.position.set(0,1.12,0);torso.castShadow=true;g.add(torso);
- // Natural head silhouette, tied-back dark hair, and visible facial features.
- sphere(g,0,1.82,-.015,.25,mats.skin,[.82,1.05,.9]);
- sphere(g,0,1.99,.015,.265,mats.hair,[1,.62,1]);
- sphere(g,0,1.79,.205,.17,mats.hair,[.75,.8,1.05]);
- sphere(g,-.19,1.82,.035,.12,mats.hair,[.65,.9,.9]);
- sphere(g,.19,1.82,.035,.12,mats.hair,[.65,.9,.9]);
- sphere(g,-.09,1.84,-.225,.027,mats.white,[1,.8,.55]);sphere(g,.09,1.84,-.225,.027,mats.white,[1,.8,.55]);
- sphere(g,-.09,1.84,-.247,.013,mat("#26313a"));sphere(g,.09,1.84,-.247,.013,mat("#26313a"));
- sphere(g,0,1.77,-.235,.035,mats.skin,[.65,.7,.7]);
- box(g,-.09,1.89,-.22,.09,.018,.025,mats.hair,-.08,0,-.12);box(g,.09,1.89,-.22,.09,.018,.025,mats.hair,.08,0,.12);
- cylinder(g,0,1.55,0,.09,.1,.18,mats.skin);
- // Flight suit: collar, harness, utility belt, shoulder insignia and gloves.
- box(g,0,1.48,-.17,.38,.08,.045,mats.gold);
- box(g,-.19,1.13,-.18,.055,.58,.035,mats.white,-.18,0,-.12);
- box(g,.19,1.13,-.18,.055,.58,.035,mats.white,.18,0,.12);
- box(g,0,1.15,-.19,.16,.2,.035,mats.dark);
- box(g,.22,1.43,0,.16,.13,.12,mats.gold);
- box(g,0,.7,0,.58,.16,.36,mats.dark);
- box(g,-.22,.72,-.2,.12,.12,.035,mats.gold);
- const limbs=[];
- for(const side of [-1,1]){
-  const arm=new THREE.Group();arm.position.set(side*.38,1.43,0);g.add(arm);
-  const sleeve=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.28,6,12),mats.suit);sleeve.position.y=-.25;sleeve.rotation.z=side*-.1;sleeve.castShadow=true;arm.add(sleeve);
-  sphere(arm,0,-.5,0,.095,mats.dark);sphere(arm,0,-.57,-.015,.09,mats.skin);
-  const leg=new THREE.Group();leg.position.set(side*.17,.66,0);g.add(leg);
-  const trouser=new THREE.Mesh(new THREE.CapsuleGeometry(.13,.34,6,12),mats.dark);trouser.position.y=-.27;trouser.castShadow=true;leg.add(trouser);
-  box(leg,0,-.57,-.015,.25,.15,.42,mats.dark);
-  box(leg,0,-.5,-.23,.16,.055,.025,mats.gold);
-  limbs.push(arm,leg);
- }
- g.userData.limbs=limbs;g.userData.torso=torso;return g}
-function makePlane(){const g=new THREE.Group();scene.add(g);g.position.set(0,.7,5);
- // nose points toward -Z
- const fus= new THREE.Mesh(new THREE.CylinderGeometry(.43,.34,5.6,24),mats.white);fus.rotation.x=Math.PI/2;fus.position.y=.05;fus.castShadow=true;g.add(fus);
- sphere(g,0,.1,-2.2,.39,mats.glass,[1,.8,1.3]);
- box(g,0,-.02,0,9,.16,1.12,mats.white);
- box(g,0,.32,1.85,2.7,.12,.72,mats.white);
- box(g,0,.78,2.05,.18,1.05,.5,mats.white);
- box(g,0,-.05,2.5,.95,.08,.58,mats.white);
- for(const s of [-1,1]){const strut=cylinder(g,s*.5,-.45,.9,.045,.045,.85,mats.dark);strut.rotation.z=s*.18;const wheel=cylinder(g,s*.52,-.82,.95,.17,.17,.12,mats.dark,18);wheel.rotation.z=Math.PI/2;}
- const prop=new THREE.Group();prop.position.set(0,.05,-2.8);g.add(prop);for(let i=0;i<3;i++){const b=box(prop,0,0,0,.12,1.25,.07,mats.dark);b.rotation.z=i*Math.PI/3;}g.userData.prop=prop;return g}
-function buildWorld(){
- scene=new THREE.Scene();scene.background=new THREE.Color("#9dbac2");scene.fog=new THREE.FogExp2("#9dbac2",.012);
- camera=new THREE.PerspectiveCamera(58,innerWidth/innerHeight,.1,180);
- renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.6));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;host.appendChild(renderer.domElement);
- scene.add(new THREE.HemisphereLight("#eaf6ff","#58634f",2.1));const sun=new THREE.DirectionalLight("#ffe2b3",3.2);sun.position.set(-18,25,-12);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-30;sun.shadow.camera.right=30;sun.shadow.camera.top=30;sun.shadow.camera.bottom=-30;scene.add(sun);
- const ground=box(scene,0,-.35,0,90,.7,90,mats.ground);ground.receiveShadow=true;
- // Runway and markings
- box(scene,0,.015,7,17,.04,54,mats.concrete);
- for(let z=-17;z<30;z+=6)box(scene,0,.04,z,.22,.025,2.8,mat("#d8d1b9"));
- for(const x of [-8.7,8.7]){box(scene,x,.03,7,.12,.03,54,mat("#b7b6a4"))}
- // Hangar with roof and open door
- box(scene,-13,2.5,-9,12,5,9,mats.cream);box(scene,-13,5.35,-9,13,.28,10,mats.roof);
- const roof2=box(scene,-13,6.25,-9,13,.22,10,mats.roof);roof2.rotation.z=.12;
- box(scene,-13,1.8,-4.42,7,3.6,.15,mat("#293d49"));
- for(const x of [-17,-13,-9])box(scene,x,2.4,-4.3,2.5,1.3,.12,mats.glass);
- // Tower
- box(scene,12,2.4,-10,3.4,4.8,3.4,mats.cream);box(scene,12,5,-10,4.2,.45,4.2,mats.roof);box(scene,12,3.7,-8.23,2.8,1.05,.08,mats.glass);
- cylinder(scene,12,7.3,-10,.09,.09,4,mats.dark);const wind=new THREE.Group();wind.position.set(12,8.8,-10);scene.add(wind);for(let i=0;i<3;i++){const b=box(wind,0,0,0,.16,2.1,.12,mats.white);b.rotation.z=i*Math.PI*2/3;}
- // perimeter lights and trees
- for(let z=-20;z<32;z+=8){for(const x of [-23,23]){cylinder(scene,x,1.3,z,.07,.09,2.6,mats.dark);sphere(scene,x,2.7,z,.2,mats.gold)}}
- for(let i=0;i<18;i++){const x=-30+(i%9)*7.2,z=-27+Math.floor(i/9)*55;cylinder(scene,x,1,z,.22,.32,2,mat("#665440"));sphere(scene,x,3,z,1.7,mat(i%2?"#587363":"#657e6d"),[1,1.2,1]);}
- // distant ridgeline
- for(let i=0;i<16;i++){const h=5+Math.random()*9;const m=new THREE.Mesh(new THREE.ConeGeometry(5+Math.random()*4,h,7),mat(i%2?"#829a94":"#738a87"));m.position.set(-42+i*5.7,h/2-1,-43-Math.random()*5);m.castShadow=true;scene.add(m)}
- mara=makeMara();plane=makePlane();
- planeEcho=plane.clone(true);planeEcho.position.set(7,13,-31);planeEcho.scale.setScalar(.62);planeEcho.visible=false;scene.add(planeEcho);
- rift=new THREE.Mesh(new THREE.TorusGeometry(7,.22,16,120),new THREE.MeshStandardMaterial({color:"#b7dfff",emissive:"#4a9ddc",emissiveIntensity:2.4,metalness:.45,roughness:.2,transparent:true,opacity:.9}));rift.position.set(0,13,-34);rift.rotation.y=.15;rift.visible=false;scene.add(rift);
- // Radio desk, console and beacon
- box(scene,-5,.55,-5,2.4,1.1,1.3,mat("#334b58"));box(scene,-5,1.15,-5,.8,.12,.55,mats.dark);
- radio=new THREE.Group();radio.position.set(-5,1.3,-5);scene.add(radio);const lamp=sphere(radio,0,.2,0,.13,mat("#efbd6d",.22,.3));lamp.material.emissive=new THREE.Color("#e4a34d");lamp.material.emissiveIntensity=1.8;
- label("RADIO SIGNAL",-5,3,-5);
- beacon=new THREE.Group();beacon.position.set(0,.2,19);scene.add(beacon);cylinder(beacon,0,1,0,.15,.22,2,mat("#d6d2c4"));sphere(beacon,0,2.1,0,.22,mats.gold);label("RUNWAY BEACON",0,3.1,19);collapseRing=new THREE.Mesh(new THREE.TorusGeometry(1,.08,8,120),new THREE.MeshBasicMaterial({color:"#f1d28b",transparent:true,opacity:0}));collapseRing.rotation.x=Math.PI/2;collapseRing.position.set(0,.25,19);collapseRing.scale.setScalar(.01);scene.add(collapseRing);
- // Plane name mark
- label("MARA'S AIRCRAFT",0,3.2,5);
- // cinematic volumetric-ish clouds
- for(let i=0;i<12;i++){const cloud=new THREE.Group();scene.add(cloud);cloud.position.set(-28+i*5,13+Math.random()*5,-25-Math.random()*16);for(let j=0;j<4;j++)sphere(cloud,(j-1.5)*1.7,Math.random()*.7,0,1.8,mat("#d9e1df",1),[1.3,.55,.8]);}
- clock=new THREE.Clock();resize();animate()}
-function resize(){if(!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)}
-function setPrompt(t){prompt.textContent=t;prompt.style.opacity=t?"1":"0"}
-function dist(a,b){return Math.hypot(a.x-b.x,a.z-b.z)}
-function interact(){if(!started||phase==="collapse"||phase==="ending")return;
- if(phase==="explore"&&dist(mara.position,radio.position)<3.2){phase="heard";mission.innerHTML="MARA · THE TRANSMISSION<br>That voice is yours.";setPrompt("");showMessage("RADIO / 19:42:08","A burst of static. Then Mara's own voice, strained and close: “If you can hear this, do not take off. The runway ends before the sky does. You have eight minutes.” The receiver clicks dead.");return}
- if(phase==="heard"&&dist(mara.position,beacon.position)<3.8){beginCollapse();return}
- setPrompt(phase==="explore"?"Find the radio desk. The signal is coming from the hangar side.":phase==="heard"?"The runway beacon is pulsing. Get closer.":"");}
-function showMessage(title,body){const layer=document.createElement("div");layer.className="message";layer.innerHTML='<div class="messageBox"><small>'+title+'</small><p>'+body+'</p><button id="dismiss">CONTINUE</button></div>';document.body.appendChild(layer);$("dismiss").onclick=()=>{layer.remove();setPrompt("The beacon is beyond the aircraft. Move toward the pulsing light.");}}
-function beginCollapse(){phase="collapse";collapseAt=clockNow();collapseDone=false;setPrompt("");mission.innerHTML="MARA · 19:49:59<br>Eight minutes have passed.";const overlay=document.createElement("div");overlay.id="collapseCaption";overlay.textContent="THE TIMELINE IS NO LONGER STABLE";document.body.appendChild(overlay)}
-function finishCollapse(){phase="ending";$("endTitle").textContent="THE SKY REMEMBERS."; $("endText").textContent="Mara reaches the beacon as the runway folds into a ribbon of light. For one suspended second, every possible flight hangs above her. Then the airfield disappears. In the silence, the radio speaks one last time: “You made it here.” The voice is still hers. The timeline closes."; $("ending").style.display="flex"}
-function animate(){requestAnimationFrame(animate);if(!renderer)return;const dt=Math.min(clock.getDelta(),.04),t=clock.elapsedTime;
- if(phase==="story"&&storyCameraTarget&&storyLookTarget){camera.position.lerp(storyCameraTarget,.025);camera.lookAt(storyLookTarget);}
- if(started&&phase!=="collapse"&&phase!=="ending"){let v=new THREE.Vector3();if(moveTarget){const delta=moveTarget.clone().sub(mara.position);delta.y=0;if(delta.length()>.28){v.copy(delta.normalize().multiplyScalar(5.6*dt));mara.position.add(v);mara.rotation.y=Math.atan2(v.x,-v.z);mara.userData.limbs.forEach((l,i)=>l.rotation.x=Math.sin(t*10+(i%2)*Math.PI)*.42);}else moveTarget=null;}else{let f=(keys.has("w")||keys.has("arrowup")?1:0)-(keys.has("s")||keys.has("arrowdown")?1:0);let r=(keys.has("d")||keys.has("arrowright")?1:0)-(keys.has("a")||keys.has("arrowleft")?1:0);if(f||r){v.set(r,0,-f).normalize().multiplyScalar(5.6*dt);mara.position.add(v);mara.rotation.y=Math.atan2(v.x,-v.z);mara.userData.limbs.forEach((l,i)=>l.rotation.x=Math.sin(t*10+(i%2)*Math.PI)*.42);}}if(v.lengthSq()===0)mara.userData.limbs.forEach(l=>l.rotation.x*=.82);mara.position.x=clamp(mara.position.x,-20,20);mara.position.z=clamp(mara.position.z,-18,25);
- const target=new THREE.Vector3(mara.position.x,4.3,mara.position.z+8.2);camera.position.lerp(target,.085);camera.lookAt(mara.position.x,1.25,mara.position.z-1.5);
- const dRadio=dist(mara.position,radio.position),dBeacon=dist(mara.position,beacon.position);
- if(phase==="explore"&&dRadio<3.2)setPrompt("E / ACT  ·  LISTEN TO THE RADIO");else if(phase==="heard"&&dBeacon<3.8)setPrompt("E / ACT  ·  TOUCH THE RUNWAY BEACON");else if(phase==="explore")setPrompt("");else if(phase==="heard")setPrompt("Reach the pulsing beacon beyond the aircraft.");
- }
- if(phase==="collapse"){const elapsed=(clockNow()-collapseAt)/1000;const p=clamp(elapsed/8,0,1);scene.background.lerp(new THREE.Color("#111b38"),p*.12);scene.fog.color.lerp(new THREE.Color("#1a2441"),p*.08);camera.position.x=mara.position.x+Math.sin(elapsed*8)*.045;camera.position.y=4.3+Math.sin(elapsed*11)*.025;
- // The aircraft lifts without a pilot; runway fractures into luminous segments.
- plane.position.y=.7+Math.sin(elapsed*2)*.15+elapsed*.18;plane.rotation.z=Math.sin(elapsed*1.7)*.06;plane.userData.prop.rotation.z+=.6;
- collapseRing.scale.setScalar(.01+p*28);collapseRing.material.opacity=1-p;
- if(elapsed>8&&!collapseDone){collapseDone=true;finishCollapse()}}
- if(plane?.userData.prop&&phase!=="collapse")plane.userData.prop.rotation.z+=.04;
- if(beacon)beacon.children[1].scale.setScalar(1+Math.sin(t*3)*.12);
- renderer.render(scene,camera)}
-const storySlides=[
- {k:"THE GRADUATION",t:"SHE EARNED EVERY INCH OF SKY.",p:"Mara remembers the day they pinned her wings. Her family filled the back row. Captain Elias stood at the edge of the stage, arms folded, pretending not to be proud. She had promised herself she would never waste the chance they had given her.",c:[-5,2.8,-3],look:[-5,1.7,3]},
- {k:"THE YEARS BEFORE",t:"NOTHING WAS GIVEN.",p:"Early mornings. Failed simulations. Long nights over flight manuals. A landing she had to repeat until her instructor finally nodded. Some classmates left. Some were promoted first. Mara stayed. She learned to trust preparation more than luck.",c:[-12,3,2],look:[-13,2,-8]},
- {k:"THE PROMOTION FLIGHT",t:"ONE FLIGHT FROM EVERYTHING.",p:"Tonight is her final evaluation. Complete the route and she earns senior mission pilot. Her own crew. Her own command. Her mother's message is still on her phone: “We knew you could do it.” Mara touches the small pair of wings inside her jacket.",c:[4,4,15],look:[0,1,5]},
- {k:"THE CHANGE OF ORDERS",t:"THE MISSION WAS NOT WHAT SHE ACCEPTED.",p:"A revised flight folder waits on the aircraft steps. The destination has changed. No explanation. Captain Elias will not meet her eyes. “Orders changed,” he says. Mara asks who authorised them. The radio answers before he can.",c:[-3,3,-1],look:[-5,1,-5]},
- {k:"THE LAST FLIGHT",t:"THEN THE SKY ANSWERED.",p:"At altitude, the compass spins. Control insists there is no other aircraft nearby. A voice comes through the static. It sounds exactly like Mara: “Do not land where they tell you.” Ahead, a second aircraft appears. Same markings. Same flight number. Another Mara is looking back.",c:[0,7,22],look:[0,3,-25]},
- {k:"SOMEWHERE ELSE",t:"WELCOME BACK, MARA.",p:"The clouds split open. For one impossible second, Mara sees a city hanging beneath the sky. Then everything goes white. She wakes at an airfield that looks like home, except the tower clock is seventeen years ahead. The radio is already on. Someone knows her name.",c:[0,6,30],look:[0,2,-30]}
+const lerp=(a,b,t)=>a+(b-a)*t;
+const V=(x,y,z)=>new THREE.Vector3(x,y,z);
+const mat=(color,rough=.72,metal=0)=>new THREE.MeshStandardMaterial({color,roughness:rough,metalness:metal});
+const M={
+ grass:mat("#647c69"),tarmac:mat("#59666b"),concrete:mat("#b7b5a8"),wall:mat("#b6b5a6"),roof:mat("#5d5148"),glass:mat("#294c5d",.22,.3),
+ suit:mat("#8299a4",.58,.08),suitDark:mat("#30404a",.64,.12),skin:mat("#98654f",.7),hair:mat("#17191d",.45),gold:mat("#d9b873",.32,.5),white:mat("#e2e5df",.36,.12),rubber:mat("#20282d"),leaf:mat("#526c58"),crate:mat("#897453"),red:mat("#a85b4e")
+};
+let renderer,scene,camera,clock,player,radio,folder,crate,beacon,aircraft,stormClouds=[];
+let started=false,phase="intro",moveTarget=null,nearTarget=null,objectiveIndex=0,choiceMade="",tutorialIndex=0;
+const keys=new Set(),joy={x:0,y:0,active:false};
+const objectives=[
+ {name:"READ THE DEPLOYMENT ORDER",short:"FLIGHT FOLDER",pos:V(-10,0,-4),hint:"The folder is on the table beside the hangar."},
+ {name:"CHECK THE DISTRESS TRANSMISSION",short:"RADIO DESK",pos:V(-5,0,-8),hint:"The radio desk is near the hangar wall."},
+ {name:"VERIFY THE MEDICAL CARGO",short:"SUPPLY CRATE",pos:V(7,0,2),hint:"The marked medical crate is beside the aircraft."},
+ {name:"CONTACT THE CLINIC",short:"FIELD RADIO",pos:V(13,0,-8),hint:"The field radio is beside the control tower."}
 ];
-function showStory(){const x=storySlides[storyIndex];$("storyKicker").textContent="CHAPTER ONE · "+x.k;$("storyCount").textContent=String(storyIndex+1).padStart(2,"0")+" / 06";$("storyTitle").textContent=x.t;$("storyText").textContent=x.p;$("storyHint").textContent="MARA · THE LAST FLIGHT";$("storyNext").textContent=storyIndex===storySlides.length-1?"TAKE CONTROL":"CONTINUE";storyCameraTarget=new THREE.Vector3(...x.c);storyLookTarget=new THREE.Vector3(...x.look);if(storyIndex>=4){rift.visible=true;planeEcho.visible=true;}if(storyIndex===5){scene.background.set("#718b9d");scene.fog.color.set("#718b9d");}if("speechSynthesis"in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(x.t+". "+x.p);u.rate=.94;u.pitch=.91;u.volume=.85;speechSynthesis.speak(u);}}
-function beginPlay(){if("speechSynthesis"in window)speechSynthesis.cancel();$("story").style.display="none";started=true;phase="explore";moveTarget=null;mara.position.set(-5,0,3);mission.innerHTML="MARA · UNKNOWN AIRFIELD<br>Find out who called your name.";setPrompt("Tap the ground to walk. Find the radio desk.");camera.position.set(-5,5,13);camera.lookAt(-5,1,0);}
-function start(){$("intro").style.display="none";$("story").style.display="flex";phase="story";storyIndex=0;showStory();}
-$("storyNext").addEventListener("click",()=>{if(storyIndex<storySlides.length-1){storyIndex++;showStory();}else beginPlay();});
-$("storySkip").addEventListener("click",beginPlay);
-$("start").addEventListener("click",start);$("act").addEventListener("click",interact);$("again").addEventListener("click",()=>location.reload());
-window.addEventListener("keydown",e=>{const k=e.key.toLowerCase();if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k))e.preventDefault();keys.add(k);if(k==="e"||k==="enter")interact()},{passive:false});window.addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
-const raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2(),groundPlane=new THREE.Plane(new THREE.Vector3(0,1,0),0),hit=new THREE.Vector3();
-function attachGroundControls(){renderer.domElement.addEventListener("pointerdown",e=>{if(!started||phase==="story"||phase==="collapse"||phase==="ending")return;const rect=renderer.domElement.getBoundingClientRect();pointer.x=((e.clientX-rect.left)/rect.width)*2-1;pointer.y=-((e.clientY-rect.top)/rect.height)*2+1;raycaster.setFromCamera(pointer,camera);if(raycaster.ray.intersectPlane(groundPlane,hit)){moveTarget=new THREE.Vector3(clamp(hit.x,-20,20),0,clamp(hit.z,-18,25));setPrompt("Mara is moving to your selected location.");}});}
-
-window.addEventListener("blur",()=>{keys.clear();touch.clear();moveTarget=null});window.addEventListener("resize",resize);
-const style=document.createElement("style");style.textContent='.message{position:fixed;inset:0;z-index:8;display:grid;place-items:center;padding:20px;background:#061321a8;backdrop-filter:blur(5px)}.messageBox{width:min(540px,100%);padding:28px;background:#0a2031;border-left:2px solid #e4c57e;box-shadow:0 20px 80px #0008}.messageBox small{letter-spacing:.2em;color:#e4c57e;font-weight:800}.messageBox p{line-height:1.8;color:#e0e8e9;font-size:14px}.messageBox button{margin-top:8px}#collapseCaption{position:fixed;z-index:6;top:18%;left:0;width:100%;text-align:center;letter-spacing:.35em;font-size:11px;color:#f0d59a;text-shadow:0 2px 12px #000;animation:pulse 1s infinite alternate}@keyframes pulse{from{opacity:.35}to{opacity:1}}';document.head.appendChild(style);
-try{buildWorld();attachGroundControls()}catch(e){console.error(e);host.innerHTML='<div style="position:fixed;inset:0;display:grid;place-items:center;padding:32px;color:#fff;text-align:center">The 3D scene could not start on this browser. Please check that WebGL and the internet connection are available, then reload.</div>'}
+const tutorials=[
+ ["MOVEMENT","Use W A S D or the arrow keys to walk. On a phone, hold the circular joystick and push in the direction you want Mara to move. Movement is deliberately slow and controllable."],
+ ["LOOK & NAVIGATE","The camera follows Mara automatically. The small map in the upper-right shows your position, the next objective and the route. You can also tap a spot on the ground to walk there."],
+ ["INTERACT","Walk close to a marked object, then press E or tap INTERACT. Read documents, listen to people and inspect the environment. The next objective unlocks only after the current one."],
+ ["TRACK YOUR MISSION","The progress bar counts the four required tasks. The map shows how far you are from the next objective. Your final decision changes the mission outcome."]
+];
+const dialogue=[
+ ["MARA","THE ROUTINE THAT NEVER HAPPENED","The evaluation flight was supposed to be forty minutes. A clean route, a landing, a signature. Then the storm warning came through, and every clock in Kijani seemed to start running faster."],
+ ["CAPTAIN ELIAS","YOU'RE NOT CLEARED TO REFUSE","Mara, the assignment has changed. You're taking the medical aircraft to Ndera clinic. The senior crew is grounded. You're the only pilot current on this airframe."],
+ ["MARA","I DIDN'T ACCEPT THIS MISSION","I accepted an evaluation. Not an emergency deployment with missing route data. You can't just put my name on an order and call it consent."],
+ ["CAPTAIN ELIAS","I KNOW","I know. And I wouldn't ask if there were another crew. The clinic has patients waiting for supplies. We have a narrow weather window. I need you to understand what is at stake before you decide."],
+ ["DR. AMINA","WE HAVE PEOPLE WAITING","This is Dr. Amina at Ndera. We have oxygen equipment and essential medicine running low. I won't tell you to fly into a storm. I am asking you to help us find a safe way to get what we need."],
+ ["MARA","THEN SHOW ME THE WHOLE PICTURE","No more orders without answers. I'll check the aircraft, the cargo and the route. Then I'll make the call. If I fly, it will be because I understand the risk, not because someone made the choice for me."]
+];
+function box(parent,x,y,z,w,h,d,m,rx=0,ry=0,rz=0){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.rotation.set(rx,ry,rz);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
+function ball(parent,x,y,z,r,m,s=[1,1,1]){const o=new THREE.Mesh(new THREE.SphereGeometry(r,24,18),m);o.position.set(x,y,z);o.scale.set(...s);o.castShadow=true;parent.add(o);return o}
+function cyl(parent,x,y,z,rt,rb,h,m,n=20){const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,n),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
+function capsule(parent,x,y,z,r,len,m,rot=0){const o=new THREE.Mesh(new THREE.CapsuleGeometry(r,len,6,12),m);o.position.set(x,y,z);o.rotation.z=rot;o.castShadow=true;parent.add(o);return o}
+function makeCharacter(){
+ const g=new THREE.Group();scene.add(g);g.position.set(-15,0,8);
+ // Anatomical proportions and layered flight clothing.
+ const hips=box(g,0,.91,0,.48,.32,.28,M.suitDark);
+ const torso=capsule(g,0,1.35,0,.29,.52,M.suit);torso.scale.set(1.08,1.08,.82);
+ const neck=cyl(g,0,1.78,0,.085,.09,.17,M.skin);
+ const head=ball(g,0,1.98,0,.22,M.skin,[.82,1.06,.82]);
+ // Hair cap and individual swept-back braids/strands.
+ ball(g,0,2.12,-.015,.235,M.hair,[1,.55,1]);
+ ball(g,0,1.99,.15,.19,M.hair,[.95,.9,.45]);
+ for(let i=0;i<7;i++){const strand=capsule(g,-.17+i*.055,1.83,-.12,.025,.24,M.hair,(i-3)*.055);strand.rotation.x=-.35;}
+ ball(g,-.22,1.98,0,.055,M.skin,[.35,.8,.55]);ball(g,.22,1.98,0,.055,M.skin,[.35,.8,.55]);
+ // Facial structure, eyes, brows, nose and mouth.
+ for(const x of [-.075,.075]){ball(g,x,2.015,.183,.022,M.white,[1,.8,.5]);ball(g,x,2.015,.202,.01,mat("#20262b"));}
+ box(g,-.075,2.06,.18,.07,.018,.025,M.hair,0,0,-.13);box(g,.075,2.06,.18,.07,.018,.025,M.hair,0,0,.13);
+ ball(g,0,1.965,.2,.025,M.skin,[.55,.8,.6]);box(g,0,1.91,.195,.07,.012,.018,mat("#633d38"));
+ // Collar, zipper, harness, insignia and utility belt.
+ box(g,0,1.69,.02,.24,.075,.24,M.suitDark);box(g,0,1.37,.155,.018,.42,.018,M.gold);
+ box(g,-.16,1.42,.14,.035,.5,.035,M.white,0,0,-.3);box(g,.16,1.42,.14,.035,.5,.035,M.white,0,0,.3);
+ box(g,.21,1.57,.03,.1,.1,.08,M.gold);box(g,0,1.04,.02,.58,.12,.36,M.suitDark);
+ // Shoulder panels and articulated arms.
+ const limbs=[];
+ for(const s of [-1,1]){
+  const shoulder=new THREE.Group();shoulder.position.set(s*.34,1.59,0);g.add(shoulder);
+  capsule(shoulder,0,-.22,0,.105,.25,M.suit,s*-.1);
+  ball(shoulder,0,-.43,0,.085,M.suitDark);
+  capsule(shoulder,0,-.53,.01,.065,.08,M.skin);
+  const leg=new THREE.Group();leg.position.set(s*.15,.91,0);g.add(leg);
+  capsule(leg,0,-.24,0,.105,.28,M.suitDark);
+  ball(leg,0,-.46,0,.095,M.suitDark);
+  box(leg,0,-.53,.09,.18,.1,.32,M.rubber);
+  limbs.push(shoulder,leg);
+ }
+ // Flight helmet clipped to the belt, shoulder patch and small utility details.
+ ball(g,-.43,.94,.02,.14,M.white,[1,.8,1]);box(g,.29,1.42,.1,.1,.14,.05,M.gold);
+ g.userData.limbs=limbs;g.userData.torso=torso;g.userData.walk=0;return g;
+}
+function makeAircraft(){
+ const g=new THREE.Group();scene.add(g);g.position.set(1,0,4);
+ const fus=cyl(g,0,1.3,0,.47,.38,6.8,M.white,32);fus.rotation.x=Math.PI/2;
+ ball(g,0,1.32,-2.8,.43,M.glass,[1,.8,1.3]);
+ box(g,0,1.12,0,9,.18,1.1,M.white);
+ box(g,0,1.28,1.85,2.5,.12,.7,M.white);box(g,0,1.6,2.15,.16,.85,.4,M.white);
+ for(const s of [-1,1]){box(g,s*4.3,1.1,.1,.35,.16,.55,M.suitDark);cyl(g,s*.5,.5,1.7,.15,.15,.5,M.rubber).rotation.z=Math.PI/2;}
+ const prop=new THREE.Group();prop.position.set(0,1.3,-3.35);g.add(prop);for(let i=0;i<3;i++){const b=box(prop,0,0,0,.1,1.2,.05,M.suitDark);b.rotation.z=i*Math.PI/3;}g.userData.prop=prop;return g;
+}
+function tree(x,z,s=1){const trunk=cyl(scene,x,1*s,z,.18*s,.27*s,2*s,mat("#69513c"));ball(scene,x,2.5*s,z,1.45*s,M.leaf,[1.05,1.25,1]);ball(scene,x-.7*s,2.2*s,z+.1,1*s,M.leaf);ball(scene,x+.65*s,2.3*s,z-.1,1*s,M.leaf);}
+function makeMarker(pos,color){const g=new THREE.Group();g.position.copy(pos);scene.add(g);const ring=new THREE.Mesh(new THREE.TorusGeometry(1.05,.045,8,48),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.9}));ring.rotation.x=Math.PI/2;ring.position.y=.08;g.add(ring);const beam=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,2.8,8),new THREE.MeshBasicMaterial({color,transparent:true,opacity:.25}));beam.position.y=1.5;g.add(beam);g.userData.ring=ring;return g;}
+function buildWorld(){
+ scene=new THREE.Scene();scene.background=new THREE.Color("#a8c0c4");scene.fog=new THREE.FogExp2("#a8c0c4",.009);
+ camera=new THREE.PerspectiveCamera(56,innerWidth/innerHeight,.1,220);
+ renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:"high-performance"});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.13;$("game").appendChild(renderer.domElement);
+ scene.add(new THREE.HemisphereLight("#eff8ff","#56624d",2.25));const sun=new THREE.DirectionalLight("#ffe4c1",3.1);sun.position.set(-24,34,-15);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.camera.left=-38;sun.shadow.camera.right=38;sun.shadow.camera.top=38;sun.shadow.camera.bottom=-38;scene.add(sun);
+ box(scene,0,-.45,0,110,.8,110,M.grass);
+ box(scene,0,.005,7,19,.05,54,M.tarmac);
+ for(let z=-18;z<34;z+=6)box(scene,0,.04,z,.2,.025,2.7,M.white);
+ for(const x of [-9.4,9.4])box(scene,x,.035,7,.1,.025,54,M.gold);
+ // Hangar architecture with open doors and roof ribs.
+ box(scene,-14,2.5,-10,13,5,10,M.wall);box(scene,-14,5.2,-10,13.5,.3,10.5,M.roof);
+ box(scene,-14,1.9,-4.92,8,3.8,.14,M.suitDark);
+ for(const x of [-18,-14,-10])box(scene,x,2.55,-4.8,2.4,1.15,.1,M.glass);
+ for(let x=-19;x<=-9;x+=2.5)box(scene,x,4.9,-4.8,.08,3.8,.08,M.gold);
+ // Control tower and windows.
+ box(scene,14,2.5,-11,4,5,4,M.wall);box(scene,14,5.1,-11,4.7,.5,4.7,M.roof);box(scene,14,3.8,-8.9,3.3,1.1,.08,M.glass);
+ cyl(scene,14,7.1,-11,.07,.08,3.6,M.suitDark);
+ for(let i=0;i<3;i++){const blade=box(scene,14,8.8,-11,.12,2,.1,M.white);blade.rotation.z=i*Math.PI*2/3;}
+ // Trees, fence, hills and service lamps.
+ for(let i=0;i<15;i++){const x=-31+(i%8)*8,z=i<8?-27:34;tree(x,z,.8+Math.random()*.5);}
+ for(let z=-24;z<38;z+=7){for(const x of [-25,25]){cyl(scene,x,1.2,z,.055,.07,2.4,M.suitDark);ball(scene,x,2.45,z,.16,M.gold);}}
+ for(let i=0;i<16;i++){const h=6+Math.random()*8;const hill=new THREE.Mesh(new THREE.ConeGeometry(5+Math.random()*3,h,8),mat(i%2?"#7f9990":"#718b83"));hill.position.set(-44+i*6,h/2-1,-48-Math.random()*7);scene.add(hill);}
+ // Supply staging, tables, objects.
+ folder=new THREE.Group();folder.position.set(-10,0,-4);scene.add(folder);box(folder,0,.82,0,2.2,.12,1.3,M.suitDark);box(folder,0,.92,0,.75,.035,.9,M.gold);box(folder,0,.96,.02,.55,.02,.68,M.white);
+ radio=new THREE.Group();radio.position.set(-5,0,-8);scene.add(radio);box(radio,0,.65,0,1.7,1.3,1.1,M.suitDark);box(radio,0,1.35,.02,1.15,.12,.7,M.white);for(let i=0;i<3;i++)ball(radio,-.3+i*.3,1.45,.1,.06,i===2?M.red:M.gold);
+ crate=new THREE.Group();crate.position.set(7,0,2);scene.add(crate);box(crate,0,.65,0,1.7,1.3,1.6,M.crate);for(let x=-.55;x<=.55;x+=.55)box(crate,x,.65,.82,.045,1.25,.04,M.gold);box(crate,0,1.35,.82,.65,.12,.04,M.white);
+ const fieldRadio=new THREE.Group();fieldRadio.position.set(13,0,-8);scene.add(fieldRadio);box(fieldRadio,0,.7,0,1.2,1.4,.8,M.suitDark);box(fieldRadio,0,1.45,.05,.8,.15,.55,M.gold);cyl(fieldRadio,.35,2,.1,.025,.025,1.2,M.white);
+ beacon=new THREE.Group();beacon.position.set(0,0,23);scene.add(beacon);cyl(beacon,0,1,0,.15,.22,2,M.white);ball(beacon,0,2.1,0,.22,M.gold);
+ aircraft=makeAircraft();player=makeCharacter();
+ // Clouds and a distant rain wall, deliberately soft and readable.
+ for(let i=0;i<15;i++){const cloud=new THREE.Group();scene.add(cloud);cloud.position.set(-32+i*5,14+Math.random()*5,-28-Math.random()*20);for(let j=0;j<4;j++)ball(cloud,(j-1.5)*1.8,Math.random()*.6,0,1.8,mat("#d9e1df",.98),[1.3,.52,.85]);stormClouds.push(cloud);}
+ objectives.forEach((o,i)=>o.marker=makeMarker(o.pos,i===objectiveIndex?0xf0cf83:0x9bc2c5));
+ clock=new THREE.Clock();resize();drawMap();animate();
+}
+function resize(){if(!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}
+function dist(a,b){return Math.hypot(a.x-b.x,a.z-b.z);}
+function setPrompt(t){$("prompt").textContent=t;$("prompt").style.opacity=t?"1":"0";}
+function updateProgress(){const n=objectiveIndex;$("progressNum").textContent=n+" / 4";$("barfill").style.width=(n/4*100)+"%";$("objective").textContent=n<4?"OBJECTIVE · "+objectives[n].name:"OBJECTIVE · CHOOSE YOUR FLIGHT PLAN";$("mapfoot").innerHTML=n<4?"NEXT: "+objectives[n].short+"<br>DISTANCE: "+Math.round(dist(player.position,objectives[n].pos))+" M":"ALL CHECKS COMPLETE<br>AWAITING YOUR DECISION";}
+function drawMap(){
+ const c=$("map"),ctx=c.getContext("2d"),w=c.width,h=c.height;ctx.clearRect(0,0,w,h);
+ ctx.fillStyle="#172c32";ctx.fillRect(0,0,w,h);ctx.strokeStyle="#ffffff20";ctx.lineWidth=2;
+ for(let x=0;x<w;x+=36){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke()}for(let y=0;y<h;y+=36){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke()}
+ ctx.fillStyle="#6a7773";ctx.fillRect(18,105,324,28);ctx.fillStyle="#c6bda6";ctx.fillRect(18,114,324,3);
+ ctx.fillStyle="#788d86";ctx.fillRect(42,30,90,55);ctx.fillStyle="#304b59";ctx.fillRect(250,28,55,65);
+ const map=(x,z)=>({x:180+(x/55)*300,y:116+(z/55)*200});
+ const p=map(player.position.x,player.position.z);ctx.strokeStyle="#e5c77f";ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(p.x,p.y);if(objectiveIndex<4){const q=map(objectives[objectiveIndex].pos.x,objectives[objectiveIndex].pos.z);ctx.lineTo(q.x,q.y);}ctx.stroke();
+ objectives.forEach((o,i)=>{const q=map(o.pos.x,o.pos.z);ctx.fillStyle=i<objectiveIndex?"#79c6a1":i===objectiveIndex?"#f1d28a":"#a7c2c7";ctx.beginPath();ctx.arc(q.x,q.y,i===objectiveIndex?8:5,0,Math.PI*2);ctx.fill();});
+ ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(p.x,p.y,7,0,Math.PI*2);ctx.fill();ctx.strokeStyle="#10202a";ctx.lineWidth=2;ctx.stroke();
+}
+function showTutorial(i){tutorialIndex=i;$("tutStep").textContent="FIELD GUIDE · "+String(i+1).padStart(2,"0")+" / 04";$("tutTitle").textContent=tutorials[i][0];$("tutText").textContent=tutorials[i][1];$("tutNext").textContent=i===3?"START MISSION":"NEXT";$("tutorial").style.display="block";phase="tutorial";}
+function closeTutorial(){ $("tutorial").style.display="none";if(tutorialIndex<3)showTutorial(tutorialIndex+1);else{phase="play";setPrompt("Find the highlighted flight folder. Follow the map.");updateProgress();}}
+function chooseVoice(speaker){if(!("speechSynthesis"in window))return;const voices=speechSynthesis.getVoices();let v;if(speaker==="MARA")v=voices.find(x=>/female|woman|zira|samantha|aria|jenny/i.test(x.name));else if(speaker==="DR. AMINA")v=voices.find(x=>/female|woman|susan|samantha|aria|jenny/i.test(x.name));else v=voices.find(x=>/male|david|mark|guy|daniel/i.test(x.name));return v;}
+function speak(speaker,text){if(!("speechSynthesis"in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=speaker==="MARA"?.94:.91;u.pitch=speaker==="MARA"?1.02:speaker==="DR. AMINA"?1.08:.84;u.volume=.92;const v=chooseVoice(speaker);if(v)u.voice=v;speechSynthesis.speak(u);}
+let cutIndex=0;
+function showDialogue(i){cutIndex=i;const d=dialogue[i];$("speaker").textContent=d[0];$("lineTitle").textContent=d[1];$("lineText").textContent=d[2];$("sceneCount").textContent="SCENE "+String(i+1).padStart(2,"0")+" / 06";$("lineNext").textContent=i===dialogue.length-1?"TAKE CONTROL":"CONTINUE";$("cutscene").style.display="flex";speak(d[0],d[1]+". "+d[2]);phase="cinematic";}
+function nextDialogue(){if(cutIndex<dialogue.length-1){showDialogue(cutIndex+1);}else{speechSynthesis?.cancel?.();$("cutscene").style.display="none";phase="tutorial";showTutorial(0);}}
+function startCinematic(){ $("intro").style.display="none";phase="cinematic";showDialogue(0);}
+function activateObjective(){
+ if(objectiveIndex>=4)return;
+ const o=objectives[objectiveIndex];if(dist(player.position,o.pos)>3.2){setPrompt("Walk closer to "+o.short.toLowerCase()+".");return;}
+ const messages=[
+ ["DEPLOYMENT ORDER","MARA'S ASSIGNMENT: NDERA CLINIC. Cargo: emergency medical supplies. Route: pending weather clearance. Authorisation: Captain Elias. Pilot acknowledgement: NOT SIGNED."],
+ ["DISTRESS TRANSMISSION","CONTROL: Kijani tower to Mara. The storm front is moving faster than forecast. A second distress signal has appeared near the ridge. Confirm you copy. MARA: I copy. I still haven't agreed to this deployment."],
+ ["CARGO MANIFEST","Three sealed medical cases. Oxygen regulators, temperature-sensitive medicine and emergency monitoring equipment. The clinic has confirmed receipt is urgent. The manifest also shows the cargo is not enough for every request."],
+ ["DR. AMINA ON FIELD RADIO","DR. AMINA: We can receive the medical cases at the east landing strip, but the ridge route is unstable. If you can get us a safe arrival window, we can prepare the ground team. MARA: I'm checking the route now."]
+ ];
+ const [title,body]=messages[objectiveIndex];showFieldMessage(title,body);
+ objectiveIndex++;updateProgress();drawMap();
+ if(objectiveIndex<4){objectives.forEach((x,i)=>x.marker.userData.ring.material.color.setHex(i===objectiveIndex?0xf0cf83:0x9bc2c5));setPrompt("Next: "+objectives[objectiveIndex].hint);}
+ else{setPrompt("All four checks complete. Choose your flight plan.");setTimeout(showChoice,450);}
+}
+function showFieldMessage(title,body){$("tutStep").textContent="MISSION INTEL";$("tutTitle").textContent=title;$("tutText").textContent=body;$("tutNext").textContent="CONTINUE";$("tutorial").style.display="block";phase="message";speak(title.includes("AMINA")?"DR. AMINA":title.includes("TRANSMISSION")?"CAPTAIN ELIAS":"MARA",body);}
+function showChoice(){
+ phase="choice";$("tutStep").textContent="COMMAND DECISION · MARA HAS THE FINAL SAY";$("tutTitle").textContent="WHICH FLIGHT PLAN?";$("tutText").textContent="The weather window is closing. The direct ridge route is faster but uncertain. The coastal route is longer, but the tower has a confirmed weather corridor. You decide how Mara responds to the deployment.";
+ $("tutorial").style.display="block";$("tutNext").style.display="none";
+ const panel=$("tutorial");let old=panel.querySelector(".choices");if(old)old.remove();
+ const choices=document.createElement("div");choices.className="choices";choices.style.cssText="display:grid;gap:9px;margin-top:18px";
+ [["TAKE THE DIRECT RIDGE ROUTE","Fast arrival. Higher uncertainty. This may reach the clinic sooner, but the team has less time to respond if conditions change.","direct"],["REQUEST THE COASTAL WEATHER CORRIDOR","Longer flight. Better information. The clinic gets a more predictable arrival window.","coastal"]].forEach(([label,desc,val])=>{const b=document.createElement("button");b.style.cssText="text-align:left;line-height:1.5;letter-spacing:.04em";b.textContent=label+"  ›";b.title=desc;b.onclick=()=>finishMission(val);choices.appendChild(b);const p=document.createElement("p");p.style.cssText="margin:0 0 6px 2px;font-size:11px";p.textContent=desc;choices.appendChild(p);});
+ panel.appendChild(choices);
+}
+function finishMission(choice){
+ choiceMade=choice;$("tutorial").style.display="none";$("tutNext").style.display="";phase="ending";$("ending").style.display="flex";
+ if(choice==="direct"){$("endTitle").textContent="THE RIDGE ROUTE";$("endText").textContent="Mara chooses speed. She takes the direct route, keeps the aircraft high and asks the clinic team to prepare for a narrow arrival window. The supplies reach Ndera sooner, but the second distress signal remains unresolved. Captain Elias will have to answer for the missing route information.";}
+ else{$("endTitle").textContent="THE COASTAL CORRIDOR";$("endText").textContent="Mara refuses to mistake urgency for certainty. She requests the verified coastal corridor and shares the weather window with Dr. Amina. The flight takes longer, but the ground team is ready and the clinic receives a reliable arrival time. The unknown distress signal is passed to the tower for a separate response.";}
+ $("barfill").style.width="100%";$("progressNum").textContent="4 / 4";$("objective").textContent="MISSION COMPLETE · "+(choice==="direct"?"DIRECT ROUTE":"COASTAL CORRIDOR");
+ if("speechSynthesis"in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(choice==="direct"?"The direct route. The sky is waiting.":"The coastal corridor. We do this with our eyes open.");u.pitch=1;u.rate=.92;speechSynthesis.speak(u);}
+}
+function interact(){if(phase!=="play")return;if(objectiveIndex>=4){showChoice();return;}activateObjective();}
+function updateMovement(dt,t){
+ let dx=0,dz=0;if(keys.has("w")||keys.has("arrowup"))dz-=1;if(keys.has("s")||keys.has("arrowdown"))dz+=1;if(keys.has("a")||keys.has("arrowleft"))dx-=1;if(keys.has("d")||keys.has("arrowright"))dx+=1;
+ dx+=joy.x;dz+=joy.y;
+ if(moveTarget){const d=V(moveTarget.x-player.position.x,0,moveTarget.z-player.position.z);if(d.length()>.35){dx+=d.x;dz+=d.z;}else moveTarget=null;}
+ const moving=Math.hypot(dx,dz)>.08;
+ if(moving){const l=Math.hypot(dx,dz);dx/=l;dz/=l;const speed=4.2;player.position.x+=dx*speed*dt;player.position.z+=dz*speed*dt;player.rotation.y=Math.atan2(dx,dz);player.userData.walk+=dt*10;player.userData.limbs.forEach((limb,i)=>{limb.rotation.x=Math.sin(player.userData.walk+(i%2)*Math.PI)*.42;});player.userData.torso.rotation.z=Math.sin(player.userData.walk)*.025;}
+ else{player.userData.limbs.forEach(l=>l.rotation.x=lerp(l.rotation.x,0,.18));player.userData.torso.rotation.z=lerp(player.userData.torso.rotation.z,0,.12);}
+ player.position.x=clamp(player.position.x,-22,22);player.position.z=clamp(player.position.z,-21,28);
+ const target=V(player.position.x,4.1,player.position.z+7.6);camera.position.lerp(target,.085);camera.lookAt(player.position.x,1.2,player.position.z-1.2);
+}
+function updateNearby(){
+ if(phase!=="play")return;
+ if(objectiveIndex>=4){setPrompt("All checks complete. Choose your flight plan.");return;}
+ const o=objectives[objectiveIndex],d=dist(player.position,o.pos);
+ $("mapfoot").innerHTML="NEXT: "+o.short+"<br>DISTANCE: "+Math.round(d)+" M";
+ if(d<3.5)setPrompt("E / INTERACT  ·  "+o.short);else setPrompt(o.hint+"  ·  "+Math.round(d)+" m");
+}
+function animate(){
+ requestAnimationFrame(animate);if(!renderer)return;const dt=Math.min(clock.getDelta(),.04),t=clock.elapsedTime;
+ if(phase==="play"){updateMovement(dt,t);updateNearby();drawMap();}
+ objectives.forEach((o,i)=>{if(o.marker){o.marker.userData.ring.rotation.z=t*.35;o.marker.userData.ring.scale.setScalar(i===objectiveIndex?1+.12*Math.sin(t*3):.72);}});
+ if(aircraft?.userData.prop)aircraft.userData.prop.rotation.z+=.045;
+ stormClouds.forEach((c,i)=>{c.position.x+=Math.sin(t*.05+i)*.001;});
+ if(phase==="cinematic"){const angle=t*.12;camera.position.lerp(V(Math.sin(angle)*19,7+Math.sin(t*.3),22-Math.cos(angle)*10),.012);camera.lookAt(0,1,-3);}
+ renderer.render(scene,camera);
+}
+function attachControls(){
+ window.addEventListener("keydown",e=>{const k=e.key.toLowerCase();if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k))e.preventDefault();keys.add(k);if(k==="e"||k==="enter")interact();},{passive:false});
+ window.addEventListener("keyup",e=>keys.delete(e.key.toLowerCase()));
+ $("mobileAct").addEventListener("click",interact);
+ const stick=$("stick"),nub=$("nub");let pid=null;
+ function stickMove(e){const r=stick.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let x=(e.clientX-cx)/(r.width*.34),y=(e.clientY-cy)/(r.height*.34);const l=Math.hypot(x,y);if(l>1){x/=l;y/=l;}joy.x=x;joy.y=y;nub.style.transform="translate("+x*30+"px,"+y*30+"px)";}
+ stick.addEventListener("pointerdown",e=>{pid=e.pointerId;stick.setPointerCapture(pid);joy.active=true;stickMove(e);});
+ stick.addEventListener("pointermove",e=>{if(pid===e.pointerId)stickMove(e);});
+ const end=()=>{pid=null;joy.x=0;joy.y=0;joy.active=false;nub.style.transform="translate(0,0)";};
+ stick.addEventListener("pointerup",end);stick.addEventListener("pointercancel",end);
+ renderer.domElement.addEventListener("pointerdown",e=>{if(phase!=="play")return;const r=renderer.domElement.getBoundingClientRect(),p=new THREE.Vector2((e.clientX-r.left)/r.width*2-1,-((e.clientY-r.top)/r.height)*2+1),ray=new THREE.Raycaster();ray.setFromCamera(p,camera);const plane=new THREE.Plane(V(0,1,0),0),hit=V(0,0,0);if(ray.ray.intersectPlane(plane,hit))moveTarget=V(clamp(hit.x,-22,22),0,clamp(hit.z,-21,28));});
+ window.addEventListener("blur",()=>{keys.clear();joy.x=joy.y=0;moveTarget=null;});
+ window.addEventListener("resize",resize);
+}
+$("start").addEventListener("click",startCinematic);
+$("lineNext").addEventListener("click",nextDialogue);
+$("tutNext").addEventListener("click",()=>{if(phase==="tutorial")closeTutorial();else if(phase==="message"){$("tutorial").style.display="none";phase="play";setPrompt(objectiveIndex<4?objectives[objectiveIndex].hint:"Choose your flight plan.");} });
+$("again").addEventListener("click",()=>location.reload());
+try{buildWorld();attachControls();}catch(e){console.error(e);$("game").innerHTML='<div style="position:fixed;inset:0;display:grid;place-items:center;padding:30px;background:#102331;color:white;text-align:center">The 3D world could not start. Please reload with an internet connection and WebGL enabled.</div>';}
