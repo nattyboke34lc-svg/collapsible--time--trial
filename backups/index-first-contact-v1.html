@@ -1,0 +1,433 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#eaf3ff">
+<title>COLLAPSIBLE TIME | First Contact</title>
+<style>
+:root {
+ --blue:#28649c;
+ --deep:#173e66;
+ --sky:#eaf4ff;
+ --pink:#f8e8f3;
+ --gold:#e6b34e;
+ --ink:#24364b;
+ --green:#32865d;
+}
+* {box-sizing:border-box}
+body {
+ margin:0;
+ font-family:system-ui,Arial,sans-serif;
+ color:var(--ink);
+ background:linear-gradient(145deg,#e7f3ff,#fff4fa);
+ min-height:100vh;
+}
+header {
+ position:sticky;
+ top:0;
+ z-index:5;
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ padding:15px 18px;
+ background:#ffffffed;
+ border-bottom:1px solid #d8e5f2;
+}
+.logo {font-weight:900;letter-spacing:1px;color:var(--deep)}
+.wallet {font-weight:800;font-size:14px;color:#9a6b12}
+main {max-width:720px;margin:auto;padding:20px 15px 45px}
+.screen {display:none;animation:fade .3s ease}
+.screen.active {display:block}
+@keyframes fade {from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+h1 {font-size:clamp(30px,7vw,46px);line-height:1.1;color:var(--deep);margin:12px 0}
+h2 {color:var(--blue)}
+p {line-height:1.65}
+.small {font-size:12px;letter-spacing:1px;color:#71839a;font-weight:700}
+.panel {
+ background:#ffffffeb;
+ border:1px solid #d7e5f3;
+ border-radius:19px;
+ padding:19px;
+ margin:15px 0;
+ box-shadow:0 7px 22px #24476b0c;
+}
+.scene {
+ min-height:185px;
+ display:flex;
+ flex-direction:column;
+ align-items:center;
+ justify-content:center;
+ text-align:center;
+ border-radius:19px;
+ margin:15px 0;
+ font-size:65px;
+ background:linear-gradient(145deg,#b9dcf8,#f2dff0);
+}
+.scene span {font-size:12px;font-weight:800;letter-spacing:2px;color:#36536e;margin-top:8px}
+button {
+ display:block;
+ width:100%;
+ padding:15px;
+ margin:9px 0;
+ border:0;
+ border-radius:13px;
+ background:var(--blue);
+ color:white;
+ font-size:15px;
+ font-weight:800;
+ cursor:pointer;
+}
+button.secondary {background:#e8f2fc;color:var(--deep);border:1px solid #cbddec}
+button.gold {background:var(--gold);color:#49330c}
+button:disabled {opacity:.45;cursor:not-allowed}
+.object {
+ background:#f1f7fd;
+ border:1px solid #d3e2ef;
+ padding:15px;
+ border-radius:13px;
+ margin:10px 0;
+ cursor:pointer;
+}
+.object strong {display:block;margin-bottom:5px}
+.object.done {background:#e6f6ed;border-color:#9acdad}
+.meter {height:11px;background:#e5edf5;border-radius:20px;overflow:hidden}
+.meter div {height:100%;width:0;background:linear-gradient(90deg,#64a8e5,#d99bc9);transition:width .4s}
+.choice {text-align:left;background:#f0f6fc;color:#23466b;border:1px solid #d1e0ee}
+.choice.selected {border:2px solid var(--blue);background:#e1efff}
+.question {font-size:20px;font-weight:800;line-height:1.5}
+.big {font-size:42px;font-weight:900;color:#a9791b}
+.tag {display:inline-block;padding:6px 10px;border-radius:20px;background:#e9f3fc;color:#245b91;font-size:12px;font-weight:800}
+footer {text-align:center;color:#8492a3;font-size:12px;padding:20px}
+</style>
+</head>
+<body>
+
+<header>
+ <div class="logo">COLLAPSIBLE TIME</div>
+ <div class="wallet">🪙 <span id="wallet">0</span> TOKENS</div>
+</header>
+
+<main>
+
+<!-- INTRO -->
+<section id="welcome" class="screen active">
+ <div class="scene">🌌<span>A UNIVERSE OF POSSIBILITIES</span></div>
+ <p class="small">FIRST CONTACT · PLAYABLE PROTOTYPE</p>
+ <h1>Would you survive in my timeline?</h1>
+ <p>Every timeline has a story. Every life has a challenge. Every decision leaves a consequence.</p>
+ <div class="panel">
+  <span class="tag">YOUR FIRST MISSION</span>
+  <h2>The Last Flight</h2>
+  <p>You will enter the life of a pilot, investigate an unfamiliar situation, make a difficult decision and discover what your presence changes.</p>
+ </div>
+ <button onclick="go('briefing')">ENTER THE TIMELINE →</button>
+</section>
+
+<!-- BRIEFING -->
+<section id="briefing" class="screen">
+ <p class="small">TIMELINE 001 · FLIGHT DECK</p>
+ <div class="scene">✈️<span>06:42 · UNKNOWN LOCATION</span></div>
+ <h1>The Last Flight</h1>
+ <p>You are Mara, a pilot transporting emergency medical supplies to a remote community.</p>
+ <p>The aircraft is functioning, but something unusual has appeared on your navigation system.</p>
+ <div class="panel">
+  <h2>Mission objectives</h2>
+  <p>01. Investigate your surroundings.</p>
+  <p>02. Understand the problem.</p>
+  <p>03. Make a decision with consequences.</p>
+  <p>04. Leave a meaningful impact.</p>
+ </div>
+ <button onclick="go('cockpit')">BEGIN INVESTIGATION</button>
+</section>
+
+<!-- COCKPIT -->
+<section id="cockpit" class="screen">
+ <p class="small">PHASE 01 · EXPLORATION</p>
+ <h1>Know your surroundings.</h1>
+ <p>Three cockpit systems contain information you need. Investigate each one.</p>
+ <div class="scene">🛩️<span>THE COCKPIT</span></div>
+
+ <div class="object" id="nav" onclick="inspect('nav')">
+  <strong>🧭 Navigation display</strong>
+  <span id="navText">Tap to investigate</span>
+ </div>
+ <div class="object" id="radio" onclick="inspect('radio')">
+  <strong>📡 Communications panel</strong>
+  <span id="radioText">Tap to investigate</span>
+ </div>
+ <div class="object" id="log" onclick="inspect('log')">
+  <strong>📖 Flight log</strong>
+  <span id="logText">Tap to investigate</span>
+ </div>
+
+ <p id="exploreCount" class="small">INVESTIGATED: 0/3</p>
+ <div class="meter"><div id="exploreMeter"></div></div>
+ <button id="decisionButton" disabled onclick="go('decision')">INVESTIGATION INCOMPLETE</button>
+</section>
+
+<!-- DECISION -->
+<section id="decision" class="screen">
+ <p class="small">PHASE 02 · DECISION</p>
+ <h1>Time is moving.</h1>
+ <div class="scene">🌩️<span>AN UNEXPECTED SIGNAL</span></div>
+ <p>The community is waiting for its medical supplies. An unfamiliar aircraft may also be in trouble.</p>
+ <p>You have limited time. What do you prioritise?</p>
+ <button onclick="choose('supplies')">A. Deliver the emergency medical supplies to the community.</button>
+ <button class="secondary" onclick="choose('signal')">B. Investigate the distress signal and help identify the aircraft in need.</button>
+ <p class="small">Your choices shape the timeline. Think about the people affected by each decision.</p>
+</section>
+
+<!-- IMPACT -->
+<section id="outcome" class="screen">
+ <p class="small">PHASE 03 · IMPACT</p>
+ <h1 id="outcomeTitle">Your choice has consequences.</h1>
+ <div class="scene" id="outcomeArt">🌍</div>
+ <div class="panel">
+  <h2>What happened?</h2>
+  <p id="outcomeText"></p>
+  <h2>Your impact assessment</h2>
+  <p id="impactText"></p>
+  <div class="big"><span id="impactScore">0</span>/100</div>
+  <div class="meter"><div id="impactMeter"></div></div>
+  <p class="small">IMPACT SCORE · MEANINGFUL CONTRIBUTION</p>
+ </div>
+ <p>Completing a mission and changing a world are not the same thing. Impact considers the difference your actions make.</p>
+ <button onclick="go('lab')">ENTER THE THINKING LAB 🧠</button>
+</section>
+
+<!-- MATHS -->
+<section id="lab" class="screen">
+ <p class="small">PHASE 04 · MASTERY</p>
+ <div class="scene">🧠<span>THE THINKING LAB</span></div>
+ <h1>Challenge your mind.</h1>
+ <p>Maths Olympiad and other intellectual challenges are another path through Collapsible Time.</p>
+ <div class="panel">
+  <span class="tag">MATHEMATICS · NUMBER THEORY</span>
+  <p class="question">A positive integer n leaves a remainder of 2 when divided by 5 and a remainder of 1 when divided by 3. What is the smallest possible value of n?</p>
+  <button class="choice" onclick="answer(this,false)">A. 12</button>
+  <button class="choice" onclick="answer(this,true)">B. 7</button>
+  <button class="choice" onclick="answer(this,false)">C. 17</button>
+  <button class="choice" onclick="answer(this,false)">D. 22</button>
+  <p id="mathFeedback"></p>
+  <p id="mathExplanation" class="small"></p>
+ </div>
+ <p>Mastery rewards intellectual growth. It is separate from your impact score. You do not need to be a mathematician to make a difference in a timeline.</p>
+ <button id="mathContinue" disabled onclick="go('shop')">CONTINUE</button>
+</section>
+
+<!-- SHOP -->
+<section id="shop" class="screen">
+ <p class="small">PHASE 05 · PROGRESSION</p>
+ <h1>Your progress matters.</h1>
+ <div class="panel">
+  <div class="big">🪙 <span id="earned">0</span></div>
+  <strong>TIME TOKENS EARNED</strong>
+  <p>Tokens reward participation and mastery challenges. They unlock eligible perks and customisation.</p>
+ </div>
+ <div class="panel">
+  <span class="tag">THE IN-BETWEEN</span>
+  <h2>✨ Silver Time Trail</h2>
+  <p>A cosmetic trail that represents your journey across timelines.</p>
+  <strong>PRICE: 15 TIME TOKENS</strong>
+  <p id="perkStatus">Available to unlock.</p>
+  <button id="perkButton" class="gold" onclick="buyPerk()">UNLOCK PERK · 15 🪙</button>
+ </div>
+ <button onclick="go('collapse')">CONTINUE TO COLLAPSE</button>
+</section>
+
+<!-- COLLAPSE -->
+<section id="collapse" class="screen">
+ <p class="small">PHASE 06 · TEMPORAL INSTABILITY</p>
+ <div class="scene">🌌<span>TIMELINE DESTABILISING</span></div>
+ <h1>Your time is up.</h1>
+ <p>The world begins to shift. Your visit is ending.</p>
+ <p>You cannot remain in this timeline. Your identity and relationships here will not follow you home.</p>
+ <p>But the consequences of your choices remain. The world has changed, even if it no longer remembers your name.</p>
+ <button onclick="go('ending')">RETURN TO MY TIMELINE</button>
+</section>
+
+<!-- ENDING -->
+<section id="ending" class="screen">
+ <p class="small">TIMELINE 001 · VISIT COMPLETE</p>
+ <div class="scene">✨<span>WELCOME BACK</span></div>
+ <h1>You were here. The world remembers.</h1>
+ <div class="panel">
+  <h2>Your timeline report</h2>
+  <p>Mission: <strong>Completed</strong></p>
+  <p>Decision: <strong id="finalChoice"></strong></p>
+  <p>Impact score: <strong id="finalImpact"></strong></p>
+  <p>Mastery challenge: <strong id="finalMastery"></strong></p>
+  <p>Time Tokens: <strong id="finalTokens"></strong></p>
+  <p>Perk: <strong id="finalPerk"></strong></p>
+ </div>
+ <h2>One timeline ends. Another is waiting.</h2>
+ <p>This is only your first contact with Collapsible Time.</p>
+ <button onclick="copyFeedback()">COPY PLAYTEST REPORT</button>
+ <p id="copyMessage" class="small"></p>
+ <button class="secondary" onclick="restart()">REPLAY FIRST CONTACT</button>
+</section>
+
+</main>
+<footer>
+COLLAPSIBLE TIME · FIRST CONTACT<br>
+Every timeline has a story. What would yours become?
+</footer>
+
+<script>
+let tokens=0;
+let explored=[];
+let decision="";
+let impact=0;
+let mastery=false;
+let perk=false;
+let answered=false;
+let reward=0;
+
+function go(id){
+ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+ window.scrollTo(0,0);
+
+ if(id==='shop'){
+  document.getElementById('earned').textContent=reward;
+  document.getElementById('perkStatus').textContent=perk?'Silver Time Trail unlocked!':'Available to unlock.';
+  document.getElementById('perkButton').disabled=perk||tokens<15;
+  document.getElementById('perkButton').textContent=perk?'UNLOCKED ✓':'UNLOCK PERK · 15 🪙';
+ }
+
+ if(id==='ending'){
+  document.getElementById('finalChoice').textContent=decision==='supplies'?'Delivered medical supplies':'Investigated distress signal';
+  document.getElementById('finalImpact').textContent=impact+'/100';
+  document.getElementById('finalMastery').textContent=mastery?'Challenge solved':'Challenge not solved';
+  document.getElementById('finalTokens').textContent=tokens;
+  document.getElementById('finalPerk').textContent=perk?'Silver Time Trail unlocked':'Not unlocked';
+ }
+}
+
+function inspect(id){
+ const info={
+  nav:['navText','The route ahead is unstable. Your destination is still reachable. The unusual signal appears to come from another direction.'],
+  radio:['radioText','A fragmented message comes through: "Requesting assistance... coordinates unclear..." The source is unknown.'],
+  log:['logText','The aircraft carries emergency medical supplies. A remote community has been waiting for this delivery.']
+ };
+
+ if(explored.includes(id))return;
+ explored.push(id);
+ document.getElementById(info[id][0]).textContent=info[id][1];
+ document.getElementById(id).classList.add('done');
+ document.getElementById('exploreCount').textContent='INVESTIGATED: '+explored.length+'/3';
+ document.getElementById('exploreMeter').style.width=(explored.length/3*100)+'%';
+
+ if(explored.length===3){
+  document.getElementById('decisionButton').disabled=false;
+  document.getElementById('decisionButton').textContent='MAKE YOUR DECISION';
+ }
+}
+
+function choose(choice){
+ decision=choice;
+
+ if(choice==='supplies'){
+  impact=85;
+  document.getElementById('outcomeTitle').textContent='The supplies arrive.';
+  document.getElementById('outcomeArt').textContent='🏥';
+  document.getElementById('outcomeText').textContent='You continue to the remote community. The medical supplies arrive, helping local medical workers respond to an urgent need.';
+  document.getElementById('impactText').textContent='You prioritised a known urgent need, completed the original mission and delivered a direct benefit to the community.';
+ }else{
+  impact=75;
+  document.getElementById('outcomeTitle').textContent='A signal answered.';
+  document.getElementById('outcomeArt').textContent='📡';
+  document.getElementById('outcomeText').textContent='You investigate the signal and establish contact. You help relay the location of an aircraft in need so assistance can be coordinated. The original delivery is delayed.';
+  document.getElementById('impactText').textContent='You investigated an uncertain situation and helped create a path toward assistance. Your choice changes the priorities of the mission.';
+ }
+
+ document.getElementById('impactScore').textContent=impact;
+ document.getElementById('impactMeter').style.width=impact+'%';
+ go('outcome');
+}
+
+function answer(button,correct){
+ if(answered)return;
+ answered=true;
+
+ document.querySelectorAll('.choice').forEach(b=>b.classList.remove('selected'));
+ button.classList.add('selected');
+
+ if(correct){
+  mastery=true;
+  reward=25;
+  tokens+=25;
+  document.getElementById('mathFeedback').textContent='Correct! You earned 25 Time Tokens.';
+  document.getElementById('mathExplanation').textContent='7 divided by 5 leaves remainder 2, and 7 divided by 3 leaves remainder 1. No smaller positive integer satisfies both conditions.';
+ }else{
+  mastery=false;
+  reward=5;
+  tokens+=5;
+  document.getElementById('mathFeedback').textContent='Not quite. You earned 5 participation tokens.';
+  document.getElementById('mathExplanation').textContent='The smallest answer is 7. Check both division remainders to see why.';
+ }
+
+ document.getElementById('wallet').textContent=tokens;
+ document.getElementById('mathContinue').disabled=false;
+}
+
+function buyPerk(){
+ if(tokens<15||perk)return;
+ tokens-=15;
+ perk=true;
+ document.getElementById('wallet').textContent=tokens;
+ document.getElementById('perkStatus').textContent='Silver Time Trail unlocked! ✨';
+ document.getElementById('perkButton').textContent='UNLOCKED ✓';
+ document.getElementById('perkButton').disabled=true;
+}
+
+function copyFeedback(){
+ const report=
+ 'COLLAPSIBLE TIME PLAYTEST\n'+
+ 'Decision: '+decision+'\n'+
+ 'Impact: '+impact+'/100\n'+
+ 'Math challenge: '+(mastery?'Solved':'Not solved')+'\n'+
+ 'Time Tokens remaining: '+tokens+'\n'+
+ 'Perk: '+(perk?'Unlocked':'Not unlocked');
+
+ if(navigator.clipboard&&navigator.clipboard.writeText){
+  navigator.clipboard.writeText(report)
+   .then(()=>document.getElementById('copyMessage').textContent='Playtest report copied!')
+   .catch(()=>document.getElementById('copyMessage').textContent=report);
+ }else{
+  document.getElementById('copyMessage').textContent=report;
+ }
+}
+
+function restart(){
+ tokens=0;
+ explored=[];
+ decision='';
+ impact=0;
+ mastery=false;
+ perk=false;
+ answered=false;
+ reward=0;
+
+ ['nav','radio','log'].forEach(id=>{
+  document.getElementById(id).classList.remove('done');
+  document.getElementById(id+'Text').textContent='Tap to investigate';
+ });
+
+ document.getElementById('exploreCount').textContent='INVESTIGATED: 0/3';
+ document.getElementById('exploreMeter').style.width='0%';
+ document.getElementById('decisionButton').disabled=true;
+ document.getElementById('decisionButton').textContent='INVESTIGATION INCOMPLETE';
+ document.getElementById('mathFeedback').textContent='';
+ document.getElementById('mathExplanation').textContent='';
+ document.getElementById('mathContinue').disabled=true;
+ document.getElementById('wallet').textContent='0';
+ document.getElementById('copyMessage').textContent='';
+ document.getElementById('perkButton').disabled=false;
+ go('welcome');
+}
+</script>
+</body>
+</html>
