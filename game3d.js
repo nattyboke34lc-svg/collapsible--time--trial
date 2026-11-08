@@ -2,7 +2,7 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.m
 
 const $=id=>document.getElementById(id);
 const host=$("game"),prompt=$("prompt"),mission=$("mission");
-let renderer,scene,camera,clock,mara,plane,radio,beacon,collapseRing,planeEcho,rift,started=false,phase="intro",near="",collapseAt=0,collapseDone=false,moveTarget=null,storyIndex=0;
+let renderer,scene,camera,clock,mara,plane,radio,beacon,collapseRing,planeEcho,rift,started=false,phase="intro",near="",collapseAt=0,collapseDone=false,moveTarget=null,storyIndex=0,storyCameraTarget=null,storyLookTarget=null;
 const keys=new Set(),touch=new Set(),clockNow=()=>performance.now();
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 const mat=(color,rough=.78,metal=0)=>new THREE.MeshStandardMaterial({color,roughness:rough,metalness:metal});
@@ -12,25 +12,35 @@ function sphere(parent,x,y,z,r,m,scale=[1,1,1]){const o=new THREE.Mesh(new THREE
 function cylinder(parent,x,y,z,rt,rb,h,m,n=20){const o=new THREE.Mesh(new THREE.CylinderGeometry(rt,rb,h,n),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;parent.add(o);return o}
 function label(text,x,y,z){const c=document.createElement("canvas");c.width=512;c.height=128;const g=c.getContext("2d");g.fillStyle="#081a29dd";g.fillRect(0,0,512,128);g.strokeStyle="#dfc487";g.lineWidth=3;g.strokeRect(4,4,504,120);g.fillStyle="#f2dfb2";g.font="bold 34px Arial";g.textAlign="center";g.fillText(text,256,78);const tex=new THREE.CanvasTexture(c);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,depthTest:false}));s.position.set(x,y,z);s.scale.set(3.3,.82,1);scene.add(s);return s}
 function makeMara(){const g=new THREE.Group();scene.add(g);g.position.set(-5,0,3);
- const torso=box(g,0,1.12,0,.62,.9,.34,mats.suit);torso.rotation.x=-.05;
- sphere(g,0,1.82,0,.25,mats.skin,[.82,1.05,.9]);
- sphere(g,0,1.99,-.045,.265,mats.hair,[1,.65,1]);
- // swept-back hair and neck
- sphere(g,-.18,1.79,-.12,.15,mats.hair,[.65,.8,.9]);
+ const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.31,.52,8,18),mats.suit);torso.position.set(0,1.12,0);torso.castShadow=true;g.add(torso);
+ // Natural head silhouette, tied-back dark hair, and visible facial features.
+ sphere(g,0,1.82,-.015,.25,mats.skin,[.82,1.05,.9]);
+ sphere(g,0,1.99,.015,.265,mats.hair,[1,.62,1]);
+ sphere(g,0,1.79,.205,.17,mats.hair,[.75,.8,1.05]);
+ sphere(g,-.19,1.82,.035,.12,mats.hair,[.65,.9,.9]);
+ sphere(g,.19,1.82,.035,.12,mats.hair,[.65,.9,.9]);
+ sphere(g,-.09,1.84,-.225,.027,mats.white,[1,.8,.55]);sphere(g,.09,1.84,-.225,.027,mats.white,[1,.8,.55]);
+ sphere(g,-.09,1.84,-.247,.013,mat("#26313a"));sphere(g,.09,1.84,-.247,.013,mat("#26313a"));
+ sphere(g,0,1.77,-.235,.035,mats.skin,[.65,.7,.7]);
+ box(g,-.09,1.89,-.22,.09,.018,.025,mats.hair,-.08,0,-.12);box(g,.09,1.89,-.22,.09,.018,.025,mats.hair,.08,0,.12);
  cylinder(g,0,1.55,0,.09,.1,.18,mats.skin);
- // collar, harness, belt and shoulder details
- box(g,0,1.48,.18,.38,.08,.025,mats.gold);
- box(g,-.19,1.13,.18,.055,.58,.025,mats.white,-.18,0,-.12);
- box(g,.19,1.13,.18,.055,.58,.025,mats.white,.18,0,.12);
- box(g,0,.7,.02,.58,.16,.36,mats.dark);
+ // Flight suit: collar, harness, utility belt, shoulder insignia and gloves.
+ box(g,0,1.48,-.17,.38,.08,.045,mats.gold);
+ box(g,-.19,1.13,-.18,.055,.58,.035,mats.white,-.18,0,-.12);
+ box(g,.19,1.13,-.18,.055,.58,.035,mats.white,.18,0,.12);
+ box(g,0,1.15,-.19,.16,.2,.035,mats.dark);
+ box(g,.22,1.43,0,.16,.13,.12,mats.gold);
+ box(g,0,.7,0,.58,.16,.36,mats.dark);
+ box(g,-.22,.72,-.2,.12,.12,.035,mats.gold);
  const limbs=[];
  for(const side of [-1,1]){
   const arm=new THREE.Group();arm.position.set(side*.38,1.43,0);g.add(arm);
-  cylinder(arm,0,-.27,0,.105,.13,.52,mats.suit,16).rotation.z=side*-.1;
-  sphere(arm,0,-.55,.02,.11,mats.skin);
+  const sleeve=new THREE.Mesh(new THREE.CapsuleGeometry(.105,.28,6,12),mats.suit);sleeve.position.y=-.25;sleeve.rotation.z=side*-.1;sleeve.castShadow=true;arm.add(sleeve);
+  sphere(arm,0,-.5,0,.095,mats.dark);sphere(arm,0,-.57,-.015,.09,mats.skin);
   const leg=new THREE.Group();leg.position.set(side*.17,.66,0);g.add(leg);
-  cylinder(leg,0,-.26,0,.13,.105,.55,mats.dark,16);
-  box(leg,0,-.57,.08,.25,.15,.42,mats.dark);
+  const trouser=new THREE.Mesh(new THREE.CapsuleGeometry(.13,.34,6,12),mats.dark);trouser.position.y=-.27;trouser.castShadow=true;leg.add(trouser);
+  box(leg,0,-.57,-.015,.25,.15,.42,mats.dark);
+  box(leg,0,-.5,-.23,.16,.055,.025,mats.gold);
   limbs.push(arm,leg);
  }
  g.userData.limbs=limbs;g.userData.torso=torso;return g}
@@ -112,7 +122,7 @@ const storySlides=[
  {k:"THE LAST FLIGHT",t:"THEN THE SKY ANSWERED.",p:"At altitude, the compass spins. Control insists there is no other aircraft nearby. A voice comes through the static. It sounds exactly like Mara: “Do not land where they tell you.” Ahead, a second aircraft appears. Same markings. Same flight number. Another Mara is looking back.",c:[0,7,22],look:[0,3,-25]},
  {k:"SOMEWHERE ELSE",t:"WELCOME BACK, MARA.",p:"The clouds split open. For one impossible second, Mara sees a city hanging beneath the sky. Then everything goes white. She wakes at an airfield that looks like home, except the tower clock is seventeen years ahead. The radio is already on. Someone knows her name.",c:[0,6,30],look:[0,2,-30]}
 ];
-function showStory(){const x=storySlides[storyIndex];$("storyKicker").textContent="CHAPTER ONE · "+x.k;$("storyCount").textContent=String(storyIndex+1).padStart(2,"0")+" / 06";$("storyTitle").textContent=x.t;$("storyText").textContent=x.p;$("storyHint").textContent="MARA · THE LAST FLIGHT";$("storyNext").textContent=storyIndex===storySlides.length-1?"TAKE CONTROL":"CONTINUE";camera.position.set(...x.c);camera.lookAt(...x.look);if(storyIndex>=4){rift.visible=true;planeEcho.visible=true;}if(storyIndex===5){scene.background.set("#718b9d");scene.fog.color.set("#718b9d");}if("speechSynthesis"in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(x.t+". "+x.p);u.rate=.94;u.pitch=.91;u.volume=.85;speechSynthesis.speak(u);}}
+function showStory(){const x=storySlides[storyIndex];$("storyKicker").textContent="CHAPTER ONE · "+x.k;$("storyCount").textContent=String(storyIndex+1).padStart(2,"0")+" / 06";$("storyTitle").textContent=x.t;$("storyText").textContent=x.p;$("storyHint").textContent="MARA · THE LAST FLIGHT";$("storyNext").textContent=storyIndex===storySlides.length-1?"TAKE CONTROL":"CONTINUE";storyCameraTarget=new THREE.Vector3(...x.c);storyLookTarget=new THREE.Vector3(...x.look);if(storyIndex>=4){rift.visible=true;planeEcho.visible=true;}if(storyIndex===5){scene.background.set("#718b9d");scene.fog.color.set("#718b9d");}if("speechSynthesis"in window){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(x.t+". "+x.p);u.rate=.94;u.pitch=.91;u.volume=.85;speechSynthesis.speak(u);}}
 function beginPlay(){if("speechSynthesis"in window)speechSynthesis.cancel();$("story").style.display="none";started=true;phase="explore";moveTarget=null;mara.position.set(-5,0,3);mission.innerHTML="MARA · UNKNOWN AIRFIELD<br>Find out who called your name.";setPrompt("Tap the ground to walk. Find the radio desk.");camera.position.set(-5,5,13);camera.lookAt(-5,1,0);}
 function start(){$("intro").style.display="none";$("story").style.display="flex";phase="story";storyIndex=0;showStory();}
 $("storyNext").addEventListener("click",()=>{if(storyIndex<storySlides.length-1){storyIndex++;showStory();}else beginPlay();});
