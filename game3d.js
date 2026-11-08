@@ -10,7 +10,7 @@ const M={
  suit:mat("#8299a4",.58,.08),suitDark:mat("#30404a",.64,.12),skin:mat("#98654f",.7),hair:mat("#17191d",.45),gold:mat("#d9b873",.32,.5),white:mat("#e2e5df",.36,.12),rubber:mat("#20282d"),leaf:mat("#526c58"),crate:mat("#897453"),red:mat("#a85b4e")
 };
 let renderer,scene,camera,clock,player,radio,folder,crate,beacon,aircraft,stormClouds=[];
-let started=false,phase="intro",moveTarget=null,nearTarget=null,objectiveIndex=0,choiceMade="",tutorialIndex=0;
+let started=false,phase="intro",moveTarget=null,nearTarget=null,objectiveIndex=0,choiceMade="",tutorialIndex=0,shotPos=null,shotLook=null;
 const keys=new Set(),joy={x:0,y:0,active:false};
 const objectives=[
  {name:"READ THE DEPLOYMENT ORDER",short:"FLIGHT FOLDER",pos:V(-10,0,-4),hint:"The folder is on the table beside the hangar."},
@@ -138,8 +138,8 @@ function closeTutorial(){ $("tutorial").style.display="none";if(tutorialIndex<3)
 function chooseVoice(speaker){if(!("speechSynthesis"in window))return;const voices=speechSynthesis.getVoices();let v;if(speaker==="MARA")v=voices.find(x=>/female|woman|zira|samantha|aria|jenny/i.test(x.name));else if(speaker==="DR. AMINA")v=voices.find(x=>/female|woman|susan|samantha|aria|jenny/i.test(x.name));else v=voices.find(x=>/male|david|mark|guy|daniel/i.test(x.name));return v;}
 function speak(speaker,text){if(!("speechSynthesis"in window))return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=speaker==="MARA"?.94:.91;u.pitch=speaker==="MARA"?1.02:speaker==="DR. AMINA"?1.08:.84;u.volume=.92;const v=chooseVoice(speaker);if(v)u.voice=v;speechSynthesis.speak(u);}
 let cutIndex=0;
-function showDialogue(i){cutIndex=i;const d=dialogue[i];$("speaker").textContent=d[0];$("lineTitle").textContent=d[1];$("lineText").textContent=d[2];$("sceneCount").textContent="SCENE "+String(i+1).padStart(2,"0")+" / 06";$("lineNext").textContent=i===dialogue.length-1?"TAKE CONTROL":"CONTINUE";$("cutscene").style.display="flex";speak(d[0],d[1]+". "+d[2]);phase="cinematic";}
-function nextDialogue(){if(cutIndex<dialogue.length-1){showDialogue(cutIndex+1);}else{speechSynthesis?.cancel?.();$("cutscene").style.display="none";phase="tutorial";showTutorial(0);}}
+function showDialogue(i){cutIndex=i;const d=dialogue[i];const shots=[[0,6,21,0,1,-4],[-16,4,-1,-12,1,-5],[-6,3,4,-10,1,0],[2,3,-12,-12,1,-1],[17,4,-5,13,1,-8],[0,5,17,0,1,-5]];const q=shots[i];shotPos=V(q[0],q[1],q[2]);shotLook=V(q[3],q[4],q[5]);$("speaker").textContent=d[0];$("lineTitle").textContent=d[1];$("lineText").textContent=d[2];$("sceneCount").textContent="SCENE "+String(i+1).padStart(2,"0")+" / 06";$("lineNext").textContent=i===dialogue.length-1?"TAKE CONTROL":"CONTINUE";$("cutscene").style.display="flex";speak(d[0],d[1]+". "+d[2]);phase="cinematic";}
+function nextDialogue(){if(cutIndex<dialogue.length-1){showDialogue(cutIndex+1);}else{window.speechSynthesis?.cancel?.();$("cutscene").style.display="none";phase="tutorial";showTutorial(0);}}
 function startCinematic(){ $("intro").style.display="none";phase="cinematic";showDialogue(0);}
 function activateObjective(){
  if(objectiveIndex>=4)return;
@@ -195,7 +195,7 @@ function animate(){
  objectives.forEach((o,i)=>{if(o.marker){o.marker.userData.ring.rotation.z=t*.35;o.marker.userData.ring.scale.setScalar(i===objectiveIndex?1+.12*Math.sin(t*3):.72);}});
  if(aircraft?.userData.prop)aircraft.userData.prop.rotation.z+=.045;
  stormClouds.forEach((c,i)=>{c.position.x+=Math.sin(t*.05+i)*.001;});
- if(phase==="cinematic"){const angle=t*.12;camera.position.lerp(V(Math.sin(angle)*19,7+Math.sin(t*.3),22-Math.cos(angle)*10),.012);camera.lookAt(0,1,-3);}
+ if(phase==="cinematic"&&shotPos&&shotLook){camera.position.lerp(shotPos,.035);camera.lookAt(shotLook);}
  renderer.render(scene,camera);
 }
 function attachControls(){
