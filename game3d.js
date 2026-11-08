@@ -73,6 +73,23 @@ function makeCharacter(){
  ball(g,-.43,.94,.02,.14,M.white,[1,.8,1]);box(g,.29,1.42,.1,.1,.14,.05,M.gold);
  g.userData.limbs=limbs;g.userData.torso=torso;g.userData.walk=0;return g;
 }
+function makeNPC(pos,outfit,hairColor){
+ const g=new THREE.Group();scene.add(g);g.position.copy(pos);
+ const cloth=mat(outfit,.62,.08),dark=mat("#26343b"),skin=mat("#98654f"),hair=mat(hairColor,.5);
+ capsule(g,0,1.22,0,.27,.48,cloth);
+ cyl(g,0,1.68,0,.075,.08,.16,skin);
+ ball(g,0,1.91,0,.205,skin,[.86,1.05,.86]);
+ ball(g,0,2.06,-.015,.22,hair,[1,.52,1]);
+ for(const x of [-1,1]){
+  capsule(g,x*.34,1.28,0,.09,.27,cloth,x*.12);
+  ball(g,x*.34,.92,0,.075,dark);
+  capsule(g,x*.15,.53,0,.095,.3,dark);
+  box(g,x*.15,.15,.07,.17,.12,.3,dark);
+ }
+ box(g,0,.91,0,.46,.22,.28,dark);
+ box(g,0,1.48,.15,.035,.32,.025,M.gold);
+ return g;
+}
 function makeAircraft(){
  const g=new THREE.Group();scene.add(g);g.position.set(1,0,4);
  const fus=cyl(g,0,1.3,0,.47,.38,6.8,M.white,32);fus.rotation.x=Math.PI/2;
@@ -113,6 +130,7 @@ function buildWorld(){
  const fieldRadio=new THREE.Group();fieldRadio.position.set(13,0,-8);scene.add(fieldRadio);box(fieldRadio,0,.7,0,1.2,1.4,.8,M.suitDark);box(fieldRadio,0,1.45,.05,.8,.15,.55,M.gold);cyl(fieldRadio,.35,2,.1,.025,.025,1.2,M.white);
  beacon=new THREE.Group();beacon.position.set(0,0,23);scene.add(beacon);cyl(beacon,0,1,0,.15,.22,2,M.white);ball(beacon,0,2.1,0,.22,M.gold);
  aircraft=makeAircraft();player=makeCharacter();
+ makeNPC(V(-12,0,-1),"#465d70","#302a28");makeNPC(V(13,0,-6),"#d6d0bd","#211e1d");
  // Clouds and a distant rain wall, deliberately soft and readable.
  for(let i=0;i<15;i++){const cloud=new THREE.Group();scene.add(cloud);cloud.position.set(-32+i*5,14+Math.random()*5,-28-Math.random()*20);for(let j=0;j<4;j++)ball(cloud,(j-1.5)*1.8,Math.random()*.6,0,1.8,mat("#d9e1df",.98),[1.3,.52,.85]);stormClouds.push(cloud);}
  objectives.forEach((o,i)=>o.marker=makeMarker(o.pos,i===objectiveIndex?0xf0cf83:0x9bc2c5));
