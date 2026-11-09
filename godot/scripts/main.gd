@@ -26,6 +26,9 @@ var last_grounded := true
 var jump_requested := false
 var touch_target_x := -1.0
 var touch_interact_target := false
+var ending_timer := 0.0
+var collapse_time := 0.0
+var ending_caption := ""
 var outcome := ""
 
 var gaps := [Vector2(1480, 1640), Vector2(2920, 3085)]
@@ -256,6 +259,15 @@ func _physics_process(delta: float) -> void:
 		_update_hud()
 		queue_redraw()
 
+	if ending_timer > 0.0:
+		ending_timer = maxf(0.0, ending_timer - delta)
+		collapse_time = ending_timer
+		queue_redraw()
+		if ending_timer <= 0.0:
+			collapse_time = 0.0
+			set_caption(ending_caption, 0.0)
+			ending_caption = ""
+
 func _is_gap(x: float) -> bool:
 	for gap in gaps:
 		if x > gap.x and x < gap.y:
@@ -345,8 +357,15 @@ func _finish_choice(which: String, message: String, title: String) -> void:
 	ended = true
 	choice_panel.visible = false
 	objective.text = "CHAPTER COMPLETE  /  YOUR CHOICE HAS CONSEQUENCES"
-	set_caption(title + "\n\n" + message + "\n\nPress R to replay this chapter.", 0.0)
-	prompt.text = "CHAPTER COMPLETE"
+	if which == "SIGNAL":
+		ending_caption = title + "\n\n" + message + "\n\nPress R to replay this chapter."
+		ending_timer = 4.0
+		collapse_time = 4.0
+		caption_panel.visible = false
+		prompt.text = "THE TIMELINE IS BREAKING"
+	else:
+		set_caption(title + "\n\n" + message + "\n\nPress R to replay this chapter.", 0.0)
+		prompt.text = "CHAPTER COMPLETE"
 
 func _restart_chapter() -> void:
 	player = Vector2(120.0, GROUND_Y)
@@ -360,6 +379,9 @@ func _restart_chapter() -> void:
 	checkpoint_x = 120.0
 	touch_target_x = -1.0
 	touch_interact_target = false
+	ending_timer = 0.0
+	collapse_time = 0.0
+	ending_caption = ""
 	outcome = ""
 	choice_panel.visible = false
 	objective.text = "OBJECTIVE  /  REPORT TO FLIGHT CONTROL"
@@ -377,8 +399,12 @@ func _draw() -> void:
 	_draw_obstacles()
 	_draw_hotspots()
 	_draw_aircraft()
+	if collapse_time > 0.0:
+		_draw_mara_echo()
 	_draw_mara()
 	draw_set_transform(Vector2.ZERO)
+	if collapse_time > 0.0:
+		_draw_time_fracture()
 
 func _draw_sky() -> void:
 	for i in range(7):
@@ -494,6 +520,29 @@ func _draw_mara() -> void:
 	draw_line(Vector2(-5, -265), Vector2(5, -264), Color("#704a43"), 1.5)
 	draw_string(ThemeDB.fallback_font, Vector2(-24, -187), "CT", HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color("#f4ead5"))
 	draw_set_transform(Vector2(-camera_x, 0.0))
+
+func _draw_mara_echo() -> void:
+	var echo_alpha := 0.22 + 0.12 * sin(anim_time * 8.0)
+	draw_set_transform(Vector2(player.x + 150.0 - camera_x, player.y), 0.0, Vector2(facing * 0.58, 0.58))
+	draw_colored_polygon(PackedVector2Array([Vector2(-34, -218), Vector2(31, -218), Vector2(42, -82), Vector2(22, -63), Vector2(-25, -63), Vector2(-42, -83)]), Color(0.72, 0.88, 0.86, echo_alpha))
+	draw_colored_polygon(PackedVector2Array([Vector2(-28, -295), Vector2(-23, -326), Vector2(0, -339), Vector2(25, -325), Vector2(31, -294), Vector2(25, -254), Vector2(7, -237), Vector2(-15, -244)]), Color(0.82, 0.90, 0.86, echo_alpha))
+	draw_colored_polygon(PackedVector2Array([Vector2(-32, -295), Vector2(-29, -331), Vector2(-7, -352), Vector2(22, -344), Vector2(39, -315), Vector2(30, -278), Vector2(19, -304), Vector2(-6, -309), Vector2(-22, -280)]), Color(0.18, 0.28, 0.31, echo_alpha))
+	draw_set_transform(Vector2(-camera_x, 0.0))
+
+func _draw_time_fracture() -> void:
+	var strength := clamp(collapse_time / 4.0, 0.0, 1.0)
+	var center := Vector2(640.0, 350.0)
+	for i in range(14):
+		var angle := float(i) * TAU / 14.0 + sin(anim_time * 5.0 + float(i)) * 0.035
+		var direction := Vector2(cos(angle), sin(angle))
+		var start := center + direction * 38.0
+		var kink := center + direction * 270.0 + Vector2(sin(anim_time * 7.0 + float(i)) * 22.0, cos(anim_time * 6.0 + float(i)) * 22.0)
+		var finish := center + direction * 920.0
+		draw_line(start, kink, Color(0.91, 0.79, 0.56, 0.58 * strength), 2.0)
+		draw_line(kink, finish, Color(0.80, 0.91, 0.88, 0.32 * strength), 1.0)
+	for i in range(4):
+		var y := 115.0 + float(i) * 137.0 + sin(anim_time * 8.0 + float(i)) * 8.0
+		draw_rect(Rect2(0.0, y, 1280.0, 2.0), Color(0.91, 0.79, 0.56, 0.16 * strength))
 
 func _draw_cutout(points: Array, color: Color) -> void:
 	var packed := PackedVector2Array()
