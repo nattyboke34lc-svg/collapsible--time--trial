@@ -1,31 +1,100 @@
-import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
-const $=id=>document.getElementById(id),V=(x,y,z)=>new THREE.Vector3(x,y,z);
-let scene,camera,renderer,clock,mara,packageObj,aircraft,phase="intro",trust=0,opened=false,shotTarget;
-const mat=(c,r=.7,m=0)=>new THREE.MeshStandardMaterial({color:c,roughness:r,metalness:m});
-const M={floor:mat("#65776c"),concrete:mat("#a7a79d"),dark:mat("#25343e"),suit:mat("#758d9a"),gold:mat("#d5b779",.3,.5),skin:mat("#98654f"),hair:mat("#191a20"),white:mat("#e8e9e2"),glass:mat("#294858",.2,.3),crate:mat("#887354"),red:mat("#a34f48")};
-function box(p,x,y,z,w,h,d,m){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;p.add(o);return o}
-function ball(p,x,y,z,r,m,s=[1,1,1]){const o=new THREE.Mesh(new THREE.SphereGeometry(r,24,18),m);o.position.set(x,y,z);o.scale.set(...s);o.castShadow=true;p.add(o);return o}
-function limb(p,x,y,z,r,len,m){const o=new THREE.Mesh(new THREE.CapsuleGeometry(r,len,5,12),m);o.position.set(x,y,z);o.castShadow=true;p.add(o);return o}
-function character(){const g=new THREE.Group();scene.add(g);g.position.set(-2,0,1);box(g,0,.93,0,.48,.3,.28,M.dark);limb(g,0,1.35,0,.28,.5,M.suit);ball(g,0,1.94,0,.205,M.skin,[.86,1.05,.86]);ball(g,0,2.08,-.02,.22,M.hair,[1,.55,1]);ball(g,0,1.98,.15,.18,M.hair,[1,.9,.42]);for(let i=0;i<6;i++)limb(g,-.14+i*.055,1.78,-.1,.018,.22,M.hair);for(const x of [-.075,.075]){ball(g,x,2,.185,.022,M.white,[1,.8,.5]);ball(g,x,2,.205,.01,M.dark);}box(g,0,1.37,.15,.018,.4,.02,M.gold);box(g,-.15,1.4,.12,.035,.46,.035,M.white);box(g,.15,1.4,.12,.035,.46,.035,M.white);for(const s of [-1,1]){limb(g,s*.35,1.28,0,.095,.28,M.suit);ball(g,s*.35,.95,0,.07,M.skin);limb(g,s*.15,.52,0,.1,.3,M.dark);box(g,s*.15,.14,.07,.17,.12,.3,M.dark);}return g;}
-function npc(x,z,shirt,hair){const g=new THREE.Group();scene.add(g);g.position.set(x,0,z);const c=mat(shirt),h=mat(hair);limb(g,0,1.2,0,.27,.48,c);ball(g,0,1.88,0,.2,M.skin);ball(g,0,2.03,-.02,.22,h,[1,.55,1]);for(const s of [-1,1]){limb(g,s*.33,1.22,0,.09,.28,c);limb(g,s*.15,.5,0,.1,.3,M.dark);}return g;}
-function build(){scene=new THREE.Scene();scene.background=new THREE.Color("#9aafb5");scene.fog=new THREE.Fog("#9aafb5",22,90);camera=new THREE.PerspectiveCamera(48,innerWidth/innerHeight,.1,150);renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.7));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;$("world").appendChild(renderer.domElement);scene.add(new THREE.HemisphereLight("#f1f6ff","#53604d",2.1));const sun=new THREE.DirectionalLight("#ffe0b6",3);sun.position.set(-12,24,12);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);scene.add(sun);box(scene,0,-.4,0,90,.8,90,M.floor);
-box(scene,-8,3,-5,15,6,.5,M.concrete);box(scene,-8,6.1,-5,16,.3,14,mat("#5b5148"));box(scene,-15,3,1,.5,6,12,M.concrete);box(scene,-1,3,1,.5,6,12,M.concrete);for(let x=-14;x<0;x+=3)box(scene,x,5.8,-4.7,.08,4,.08,M.gold);for(let x=-13;x<0;x+=4){const lamp=new THREE.PointLight("#f3d9a5",38,13);lamp.position.set(x,5,-1);scene.add(lamp);ball(scene,x,5,-1,.13,M.gold);}
-box(scene,4,.01,4,38,.08,36,mat("#59686b"));for(let z=-9;z<20;z+=5)box(scene,4,.06,z,.15,.025,2,M.white);aircraft=new THREE.Group();scene.add(aircraft);aircraft.position.set(5,0,2);const fus=new THREE.Mesh(new THREE.CapsuleGeometry(.55,5.4,8,20),M.white);fus.rotation.x=Math.PI/2;fus.position.y=1.45;fus.castShadow=true;aircraft.add(fus);ball(aircraft,0,1.5,-2.8,.55,M.glass,[1,.75,1.35]);box(aircraft,0,1.18,0,8,.16,1.1,M.white);box(aircraft,0,1.45,1.7,2.3,.14,.65,M.white);box(aircraft,0,1.7,2.1,.14,.75,.35,M.white);const prop=new THREE.Group();prop.position.set(0,1.45,-3.15);aircraft.add(prop);for(let i=0;i<3;i++){const b=box(prop,0,0,0,.09,1.1,.04,M.dark);b.rotation.z=i*Math.PI/3;}for(const x of [-.8,.8]){const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.13,20),M.dark);wheel.rotation.z=Math.PI/2;wheel.position.set(x,.3,1.3);aircraft.add(wheel);}
-box(scene,1,.6,-1,1.4,1.2,1.2,M.dark);packageObj=new THREE.Group();scene.add(packageObj);packageObj.position.set(1,1.35,-1);box(packageObj,0,0,0,1.15,.85,.9,M.crate);box(packageObj,0,.02,.47,.95,.08,.035,M.gold);box(packageObj,0,.05,.485,.58,.18,.03,M.white);box(packageObj,0,.1,.51,.22,.28,.035,M.red);mara=character();npc(-6,-1,"#3c566c","#302927");npc(13,-3,"#d7d0bf","#211d1b");for(let i=0;i<12;i++){const hill=new THREE.Mesh(new THREE.ConeGeometry(7,12,8),mat(i%2?"#82998d":"#71887f"));hill.position.set(-35+i*7,4,-35-Math.random()*8);scene.add(hill);}for(let i=0;i<10;i++){const cloud=new THREE.Group();scene.add(cloud);cloud.position.set(-22+i*5,13,-25-Math.random()*12);for(let j=0;j<3;j++)ball(cloud,j*1.5,0,0,1.8,mat("#dbe3e0",1),[1.4,.5,.8]);}clock=new THREE.Clock();camera.position.set(1,4,12);camera.lookAt(0,1,0);animate();}
-function shot(pos,look,duration=1400){shotTarget={pos:V(...pos),look:V(...look),until:performance.now()+duration};}
-function voice(who,text){if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);u.rate=who==="MARA"?.94:.88;u.pitch=who==="MARA"?1.02:who==="ELIAS"?.78:1.12;u.volume=.95;const vs=speechSynthesis.getVoices();const v=who==="MARA"?vs.find(x=>/female|zira|samantha|aria|jenny/i.test(x.name)):who==="ELIAS"?vs.find(x=>/male|david|mark|guy|daniel/i.test(x.name)):vs.find(x=>/female|susan|samantha|aria/i.test(x.name));if(v)u.voice=v;speechSynthesis.speak(u);}
-function subtitle(who,text){$("who").textContent=who;$("line").textContent=text;voice(who,text);}
-function card(tag,title,body,buttons){$("eyebrow").textContent=tag;$("cardtitle").textContent=title;$("body").textContent=body;const a=$("actions");a.innerHTML="";buttons.forEach(b=>{const el=document.createElement("button");el.textContent=b.label;if(b.secondary)el.className="secondary";el.onclick=b.run;a.appendChild(el);});$("card").style.display="block";}
+const $ = id => document.getElementById(id);
+const world = $("world");
+let canvas, ctx, W=0, H=0, t=0, phase="idle", choice=0, camera=0, targetCamera=0, raf=0;
+const palette={sky:"#b9c9c5",sky2:"#e1d8c2",mount:"#81938a",mount2:"#647c75",concrete:"#9a9a8b",navy:"#243b4a",blue:"#607d89",cream:"#e9dfc6",gold:"#d2b77c",skin:"#9c6c55",hair:"#29252a",paper:"#d8c7a4",red:"#9e514b"};
+function poly(points,fill,stroke="#34434a",lw=2){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.lineWidth=lw;ctx.strokeStyle=stroke;ctx.stroke();}}
+function rect(x,y,w,h,c,stroke="#34434a",lw=2){ctx.fillStyle=c;ctx.fillRect(x,y,w,h);if(stroke){ctx.lineWidth=lw;ctx.strokeStyle=stroke;ctx.strokeRect(x,y,w,h);}}
+function ellipse(x,y,rx,ry,c,stroke="#34434a",lw=2){ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fillStyle=c;ctx.fill();if(stroke){ctx.lineWidth=lw;ctx.strokeStyle=stroke;ctx.stroke();}}
+function line(x1,y1,x2,y2,c="#34434a",lw=3){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.strokeStyle=c;ctx.lineWidth=lw;ctx.lineCap="round";ctx.stroke();}
+function paperShadow(){ctx.shadowColor="rgba(20,35,40,.22)";ctx.shadowBlur=0;ctx.shadowOffsetX=6;ctx.shadowOffsetY=7;}
+function resetShadow(){ctx.shadowColor="transparent";ctx.shadowBlur=0;ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;}
+function cutout(points,fill){paperShadow();poly(points,fill);resetShadow();}
+function text(str,x,y,size,color="#f7f0df",align="center",font="Georgia"){ctx.font=size+"px "+font;ctx.textAlign=align;ctx.fillStyle=color;ctx.fillText(str,x,y);}
+function background(){
+  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,palette.sky);g.addColorStop(.62,palette.sky2);g.addColorStop(1,"#c2b69d");rect(0,0,W,H,g,null);
+  // floating paper clouds
+  for(let i=0;i<5;i++){let x=((i*237-t*.12)%(W+180)+W+180)%(W+180)-90,y=H*.15+(i%3)*H*.055;cutout([[x-48,y],[x-28,y-17],[x-4,y-13],[x+12,y-28],[x+38,y-15],[x+52,y+2],[x+25,y+13],[x-36,y+12]],"#e9e5d8");}
+  // distant layered hills
+  const shift=(camera*.13)%W;
+  for(let i=0;i<3;i++){let y=H*.48+i*H*.07;ctx.beginPath();ctx.moveTo(-W,y);for(let x=-W;x<2*W;x+=70){ctx.lineTo(x+shift+i*25,y+Math.sin((x+t*.03+i*60)/115)*22);}ctx.lineTo(2*W,H);ctx.lineTo(-W,H);ctx.closePath();ctx.fillStyle=[palette.mount,palette.mount2,"#526e68"][i];ctx.fill();}
+  // runway + folded paper markings
+  rect(0,H*.73,W,H*.27,"#777f79",null);poly([[0,H*.73],[W,H*.68],[W,H*.77],[0,H*.82]],"#a4a08e",null);
+  for(let i=0;i<8;i++){let x=((i*170-camera*.65)%(W+100)+W+100)%(W+100);poly([[x,H*.78],[x+55,H*.775],[x+77,H*.79],[x+20,H*.8]],"#e6dfc8",null);}
+  // hangar as a folded paper stage
+  const hx=W*.08-camera*.3,hy=H*.36,hw=W*.37,hh=H*.4;
+  cutout([[hx,hy+hh],[hx,hy+hh*.28],[hx+hw*.18,hy],[hx+hw,hy+hh*.13],[hx+hw,hy+hh],[hx+hw*.85,hy+hh]],"#d4d0c1");
+  poly([[hx,hy+hh*.28],[hx+hw*.18,hy],[hx+hw*.18,hy+hh*.8],[hx,hy+hh]],"#b5b5a7");
+  rect(hx+hw*.27,hy+hh*.4,hw*.58,hh*.6,"#485d64","#3d5055",3);
+  for(let i=0;i<4;i++)line(hx+hw*(.32+i*.14),hy+hh*.43,hx+hw*(.32+i*.14),hy+hh,"#c5c4b5",2);
+}
+function drawMara(x,y,s=1,turn=0){
+  ctx.save();ctx.translate(x,y);ctx.scale(s,s);ctx.rotate(turn);
+  // feet, legs and torso are separate paper layers
+  cutout([[-21,0],[-4,0],[-5,-70],[-24,-70]],"#283b48");cutout([[7,0],[25,0],[26,-70],[9,-70]],"#314958");
+  cutout([[-33,-5],[-4,-5],[-5,5],[-38,5]],"#1d2e3a");cutout([[5,-5],[35,-5],[40,5],[8,5]],"#1d2e3a");
+  cutout([[-29,-145],[28,-145],[35,-65],[22,-50],[-22,-50],[-37,-67]],palette.blue);
+  poly([[-29,-145],[-4,-135],[-5,-58],[-22,-50],[-37,-67]],"#4e6c7b");
+  poly([[28,-145],[4,-135],[5,-58],[22,-50],[35,-65]],"#79929a");
+  line(-18,-126,18,-126,palette.gold,4);rect(-5,-121,10,30,palette.gold,null);
+  // arms, paper joints
+  cutout([[-28,-137],[-44,-125],[-55,-76],[-43,-69],[-25,-112]],"#637f8c");
+  cutout([[28,-137],[44,-124],[54,-83],[43,-75],[25,-112]],"#79939a");
+  ellipse(-49,-71,8,10,palette.skin);ellipse(49,-77,8,10,palette.skin);
+  // neck and face
+  rect(-8,-164,16,23,palette.skin,null);
+  cutout([[-24,-205],[-17,-225],[0,-233],[18,-224],[26,-203],[22,-174],[9,-161],[-12,-163],[-25,-181]],palette.skin);
+  // hair as an oversized layered silhouette, with side braids
+  cutout([[-27,-204],[-25,-230],[-7,-245],[17,-238],[31,-218],[26,-186],[18,-197],[14,-220],[-4,-214],[-18,-196]],palette.hair);
+  cutout([[-23,-200],[-31,-183],[-27,-153],[-18,-148],[-15,-184]],"#29252a");
+  poly([[17,-224],[27,-211],[25,-184],[18,-173],[15,-199]],"#403039");
+  ellipse(-9,-198,2.5,3,"#25272a",null);ellipse(10,-198,2.5,3,"#25272a",null);
+  line(-5,-179,5,-178,"#704a43",1.5);
+  // stitched patch
+  poly([[-22,-139],[-8,-139],[-8,-124],[-22,-124]],palette.cream);text("CT",-15,-128,8,"#354b55","center","Arial");
+  ctx.restore();
+}
+function drawAircraft(x,y,s=1){
+  ctx.save();ctx.translate(x,y);ctx.scale(s,s);
+  cutout([[-180,-35],[-132,-49],[122,-49],[178,-27],[145,-12],[-145,-12]],"#eee9da");
+  poly([[-30,-49],[20,-130],[38,-130],[18,-49]],"#c8c7ba");
+  poly([[-30,-12],[20,48],[40,48],[15,-12]],"#b7b7aa");
+  poly([[-160,-36],[-187,-68],[-173,-73],[-128,-43]],"#d8d4c6");
+  poly([[130,-36],[171,-62],[181,-55],[164,-25]],"#d8d4c6");
+  poly([[-178,-33],[-156,-40],[-141,-38],[-158,-27]],"#54727e");
+  for(let i=0;i<3;i++){let a=t*.045+i*Math.PI*2/3;line(-183,-35,-183+Math.cos(a)*31,-35+Math.sin(a)*31,"#354b55",4);}
+  line(-70,-47,-70,-12,"#657f88",3);line(-35,-47,-35,-12,"#657f88",3);
+  ctx.restore();
+}
+function sceneFrame(){
+  ctx.clearRect(0,0,W,H);background();
+  const bob=Math.sin(t*.045)*3;
+  // runway props drift slowly to imply depth
+  for(let i=0;i<4;i++){let x=((i*W*.31-camera*.42)%(W+100)+W+100)%(W+100);cutout([[x,H*.68],[x+12,H*.68],[x+10,H*.52],[x+2,H*.52]],"#465c60");}
+  drawAircraft(W*.66-camera*.08,H*.68,.82);
+  // crate with a bright paper seal
+  const px=W*.75-camera*.03,py=H*.66;
+  cutout([[px-34,py-49],[px+32,py-49],[px+38,py],[px-39,py]],"#987c55");
+  rect(px-5,py-48,10,48,palette.gold,null);rect(px-24,py-31,48,14,"#e8dfc8",null);text("M.V.",px,py-20,9,"#354b55","center","Arial");
+  drawMara(W*.34-camera*.08,H*.78+bob,Math.min(1.08,H/650),Math.sin(t*.018)*.018);
+  // scene-specific character rising entrance
+  if(phase==="opening"&&t<180){let rise=Math.max(0,1-t/70);ctx.globalAlpha=1-rise;drawMara(W*.34-camera*.08,H*.78+rise*H*.38,Math.min(1.08,H/650));ctx.globalAlpha=1;}
+  // paper grain / edge vignette
+  const v=ctx.createLinearGradient(0,0,0,H);v.addColorStop(0,"rgba(20,38,46,.13)");v.addColorStop(.2,"transparent");v.addColorStop(.78,"transparent");v.addColorStop(1,"rgba(20,38,46,.35)");rect(0,0,W,H,v,null);
+  text("KIJANI AIRFIELD",W-28, H-25,10,"#f1ead9","right","Arial");
+}
+function animate(){t++;camera+=(targetCamera-camera)*.025;sceneFrame();raf=requestAnimationFrame(animate);}
+function resize(){W=canvas.width=Math.floor(innerWidth*Math.min(devicePixelRatio||1,1.6));H=canvas.height=Math.floor(innerHeight*Math.min(devicePixelRatio||1,1.6));canvas.style.width="100%";canvas.style.height="100%";ctx.setTransform(1,0,0,1,0,0);}
+function voice(who,words){if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(words);u.rate=who==="MARA"?.94:.88;u.pitch=who==="MARA"?1.02:who==="ELIAS"?.78:1.12;const vs=speechSynthesis.getVoices();const v=who==="MARA"?vs.find(x=>/female|zira|samantha|aria|jenny/i.test(x.name)):vs.find(x=>/male|david|mark|guy|daniel/i.test(x.name));if(v)u.voice=v;speechSynthesis.speak(u);}
+function subtitle(who,words){$("who").textContent=who;$("line").textContent=words;voice(who,words);}
 function hideCard(){$("card").style.display="none";}
-function setProgress(n){$("meter").style.display="block";$("fill").style.width=n+"%";$("meterpct").textContent=n+"%";}
-function begin(){$("start").style.display="none";$("skip").style.display="block";phase="opening";shot([0,5,14],[0,1,0],2200);subtitle("RADIO CONTROL","Mara, do you copy?");setTimeout(()=>{if(phase!=="opening")return;shot([-5,3,5],[-2,1,1]);subtitle("MARA","Copy. I'm at the aircraft. What's changed?");},2600);setTimeout(()=>{if(phase!=="opening")return;shot([-7,3,0],[-6,1,-1]);subtitle("CAPTAIN ELIAS","Your flight plan just changed. You're leaving in twelve minutes.");},5600);setTimeout(()=>{if(phase!=="opening")return;subtitle("MARA","I was told this was a routine evaluation.");card("INCOMING ORDERS","A mission you never accepted","A sealed package must be delivered to Ndera Clinic. No route details. No cargo manifest. One instruction: do not open it.",[{label:"ASK WHY YOU WERE CHOSEN",run:()=>{trust++;hideCard();subtitle("MARA","Why me? And why is the package sealed?");setTimeout(()=>{if(phase!=="opening")return;subtitle("ELIAS","Because it was addressed to you. Personally.");showPackage();},2400);}},{label:"DEMAND THE FULL BRIEFING",secondary:true,run:()=>{trust--;hideCard();subtitle("MARA","I don't move until I see the full briefing.");setTimeout(()=>{if(phase!=="opening")return;subtitle("ELIAS","Then look at the package. There's something you need to see.");showPackage();},2400);}}]);},8500);}
-function showPackage(){phase="package";shot([2.6,2.8,5],[1,1.1,-1],1400);$("hint").style.display="block";$("hint").textContent="THE PACKAGE IS WAITING · TAP TO INSPECT";card("OBJECTIVE 01","Something is wrong with the seal","The package is on the trolley beside the aircraft. You don't need to walk anywhere. Choose to inspect it.",[{label:"INSPECT THE PACKAGE",run:inspect},{label:"LEAVE IT SEALED",secondary:true,run:()=>{opened=false;futureMessage();}}]);}
-function inspect(){phase="inspect";opened=true;hideCard();shot([1.7,2.2,1.4],[1,1.4,-1],1000);$("hint").style.display="none";subtitle("MARA","This seal...");setTimeout(()=>{if(phase!=="inspect")return;subtitle("MARA","It has my name. And a date seventeen years from now.");card("UNAUTHORISED OBJECT","17 YEARS IN THE FUTURE","The label reads: MARA V. / FLIGHT 001 / RETURN TO SENDER. The seal bears the same insignia as the patch on Mara's flight suit.",[{label:"BREAK THE SEAL",run:openPackage},{label:"CALL ELIAS FIRST",secondary:true,run:callElias}]);},2100);}
-function callElias(){hideCard();phase="call";subtitle("MARA","Captain, the package is addressed to me. The date is impossible.");setTimeout(()=>{if(phase!=="call")return;subtitle("ELIAS","Do not open it. I'm serious, Mara. Whatever you hear, do not open it.");card("WARNING","He knows what's inside","For the first time, the captain sounds afraid. The radio channel is still open.",[{label:"OPEN IT ANYWAY",run:openPackage},{label:"OBEY THE ORDER",secondary:true,run:futureMessage}]);},2200);}
-function openPackage(){opened=true;hideCard();phase="reveal";shot([1.1,1.9,.2],[1,1.3,-1],1600);packageObj.rotation.z=-.08;subtitle("MARA","I'm opening it.");setTimeout(()=>{if(phase!=="reveal")return;box(packageObj,0,.5,0,.85,.035,.68,M.dark);subtitle("UNKNOWN WOMAN","Mara. If you can hear this, the first flight has already happened.");setTimeout(()=>{if(phase!=="reveal")return;subtitle("UNKNOWN WOMAN","You must not let me board that aircraft.");card("RECORDED MESSAGE · DATE UNKNOWN","The voice is yours.","The recording is unmistakably Mara's voice. Older. Exhausted. Behind her, an alarm is counting down. Then she says one more thing.",[{label:"ASK WHO SHE IS",run:endingOpen},{label:"ASK WHAT HAPPENED",secondary:true,run:endingOpen}]);},3200);},2300);}
-function futureMessage(){phase="future";hideCard();shot([-1,3,5],[-2,1,1]);subtitle("RADIO CONTROL","Mara... we have a problem.");setTimeout(()=>{if(phase!=="future")return;subtitle("UNKNOWN WOMAN","Don't take off. Please. I know what happens if you do.");card("UNKNOWN TRANSMISSION","A voice with your face","The signal has no source. The voice sounds exactly like Mara, but the timestamp is seventeen years ahead.",[{label:"TRACE THE SIGNAL",run:endingSealed},{label:"ASK HER WHAT HAPPENS",secondary:true,run:endingSealed}]);},2200);}
-function endingOpen(){trust++;finish(true);}function endingSealed(){finish(false);}
-function finish(didOpen){phase="ending";hideCard();$("skip").style.display="none";$("hint").style.display="none";$("ending").style.display="flex";if(didOpen){$("endtitle").textContent="YOU WERE NEVER THE FIRST.";$("endcopy").textContent="Inside the package is a flight recorder. It contains a recording of Mara, seventeen years older, warning her not to board. The last frame shows the same airfield. The same aircraft. And someone standing behind her.";$("endmicro").textContent="TIMELINE INTEGRITY: 61% · OBJECT OPENED";}else{$("endtitle").textContent="SHE KNOWS YOUR NEXT MOVE.";$("endcopy").textContent="Mara leaves the package sealed. The radio goes silent. Then the aircraft's cockpit lights switch on by themselves. A voice comes through the headset: 'Thank you for not opening it. Now please don't let me land.'";$("endmicro").textContent="TIMELINE INTEGRITY: 84% · OBJECT SEALED";}setProgress(didOpen?61:84);if(window.speechSynthesis){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(didOpen?"You were never the first.":"She knows your next move.");u.rate=.85;u.pitch=.9;speechSynthesis.speak(u);}}
-function animate(){requestAnimationFrame(animate);if(shotTarget){camera.position.lerp(shotTarget.pos,.035);camera.lookAt(shotTarget.look);if(performance.now()>shotTarget.until)shotTarget=null;}renderer.render(scene,camera);}
-function resize(){if(!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}
-$("begin").onclick=begin;$("replay").onclick=()=>location.reload();$("skip").onclick=()=>{if(phase==="opening"){hideCard();showPackage();}else if(phase!=="ending"){hideCard();showPackage();}};window.addEventListener("resize",resize);build();
+function card(tag,title,body,buttons){$("eyebrow").textContent=tag;$("cardtitle").textContent=title;$("body").textContent=body;const a=$("actions");a.innerHTML="";buttons.forEach(b=>{const el=document.createElement("button");el.textContent=b.label;if(b.secondary)el.className="secondary";el.onclick=b.run;a.appendChild(el);});$("card").style.display="block";}
+function shot(x){targetCamera=x;}
+function begin(){phase="opening";t=0;$("start").style.display="none";$("skip").style.display="block";shot(0);subtitle("RADIO CONTROL","Mara, do you copy?");setTimeout(()=>{if(phase!=="opening")return;subtitle("MARA","Copy. I'm at the aircraft. What's changed?");},2300);setTimeout(()=>{if(phase!=="opening")return;shot(95);subtitle("CAPTAIN ELIAS","Your flight plan just changed. You're leaving in twelve minutes.");},4900);setTimeout(()=>{if(phase!=="opening")return;subtitle("MARA","I was told this was a routine evaluation.");card("INCOMING ORDERS","A mission you never accepted","A sealed package must be delivered to Ndera Clinic. No route details. No cargo manifest. One instruction: do not open it.",[{label:"ASK WHY YOU WERE CHOSEN",run:()=>{choice++;hideCard();subtitle("MARA","Why me? And why is the package sealed?");setTimeout(()=>{if(phase!=="opening")return;subtitle("ELIAS","Because it was addressed to you. Personally.");showPackage();},2200);}},{label:"DEMAND THE FULL BRIEFING",secondary:true,run:()=>{choice--;hideCard();subtitle("MARA","I don't move until I see the full briefing.");setTimeout(()=>{if(phase!=="opening")return;subtitle("ELIAS","Then look at the package. There's something you need to see.");showPackage();},2200);}}]);},7600);}
+function showPackage(){phase="package";shot(180);$("hint").style.display="block";$("hint").textContent="THE PACKAGE IS WAITING · CHOOSE TO INSPECT";card("OBJECTIVE 01","Something is wrong with the seal","The package is on the trolley beside the aircraft. You don't need to walk anywhere. Choose what Mara does next.",[{label:"INSPECT THE PACKAGE",run:inspect},{label:"LEAVE IT SEALED",secondary:true,run:futureMessage}]);}
+function inspect(){phase="inspect";hideCard();shot(235);$("hint").style.display="none";subtitle("MARA","This seal...");setTimeout(()=>{if(phase!=="inspect")return;subtitle("MARA","It has my name. And a date seventeen years from now.");card("UNAUTHORISED OBJECT","17 YEARS IN THE FUTURE","The label reads: MARA V. / FLIGHT 001 / RETURN TO SENDER. The seal bears the same insignia as the patch on Mara's flight suit.",[{label:"BREAK THE SEAL",run:openPackage},{label:"CALL ELIAS FIRST",secondary:true,run:callElias}]);},1900);}
+function callElias(){hideCard();phase="call";subtitle("MARA","Captain, the package is addressed to me. The date is impossible.");setTimeout(()=>{if(phase!=="call")return;subtitle("ELIAS","Do not open it. I'm serious, Mara. Whatever you hear, do not open it.");card("WARNING","He knows what's inside","For the first time, the captain sounds afraid. The radio channel is still open.",[{label:"OPEN IT ANYWAY",run:openPackage},{label:"OBEY THE ORDER",secondary:true,run:futureMessage}]);},2100);}
+function openPackage(){hideCard();phase="reveal";shot(270);subtitle("MARA","I'm opening it.");setTimeout(()=>{if(phase!=="reveal")return;subtitle("UNKNOWN WOMAN","Mara. If you can hear this, the first flight has already happened.");setTimeout(()=>{if(phase!=="reveal")return;subtitle("UNKNOWN WOMAN","You must not let me board that aircraft.");card("RECORDED MESSAGE · DATE UNKNOWN","The voice is yours.","The recording is unmistakably Mara's voice. Older. Exhausted. Behind her, an alarm is counting down. Then she says one more thing.",[{label:"ASK WHO SHE IS",run:()=>finish(true)},{label:"ASK WHAT HAPPENED",secondary:true,run:()=>finish(true)}]);},2600);},1900);}
+function futureMessage(){phase="future";hideCard();shot(90);subtitle("RADIO CONTROL","Mara... we have a problem.");setTimeout(()=>{if(phase!=="future")return;subtitle("UNKNOWN WOMAN","Don't take off. Please. I know what happens if you do.");card("UNKNOWN TRANSMISSION","A voice with your face","The signal has no source. The voice sounds exactly like Mara, but the timestamp is seventeen years ahead.",[{label:"TRACE THE SIGNAL",run:()=>finish(false)},{label:"ASK HER WHAT HAPPENS",secondary:true,run:()=>finish(false)}]);},2100);}
+function finish(opened){phase="ending";hideCard();$("skip").style.display="none";$("hint").style.display="none";$("ending").style.display="flex";if(opened){$("endtitle").textContent="YOU WERE NEVER THE FIRST.";$("endcopy").textContent="Inside the package is a flight recorder. It contains a recording of Mara, seventeen years older, warning her not to board. The last frame shows the same airfield. The same aircraft. And someone standing behind her.";$("endmicro").textContent="TIMELINE INTEGRITY: 61% · OBJECT OPENED";}else{$("endtitle").textContent="SHE KNOWS YOUR NEXT MOVE.";$("endcopy").textContent="Mara leaves the package sealed. The radio goes silent. Then the aircraft's cockpit lights switch on by themselves. A voice comes through the headset: 'Thank you for not opening it. Now please don't let me land.'";$("endmicro").textContent="TIMELINE INTEGRITY: 84% · OBJECT SEALED";}if(window.speechSynthesis){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(opened?"You were never the first.":"She knows your next move.");u.rate=.85;speechSynthesis.speak(u);}}
+function init(){canvas=document.createElement("canvas");canvas.id="cardboard-stage";canvas.style.cssText="position:absolute;inset:0;width:100%;height:100%;display:block";world.appendChild(canvas);ctx=canvas.getContext("2d");resize();animate();$("begin").onclick=begin;$("replay").onclick=()=>location.reload();$("skip").onclick=()=>{if(phase==="opening"){hideCard();showPackage();}else if(phase!=="ending"){hideCard();showPackage();}};window.addEventListener("resize",resize);}
+init();
