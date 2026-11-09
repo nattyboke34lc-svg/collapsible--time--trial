@@ -1,100 +1,68 @@
-const $ = id => document.getElementById(id);
-const world = $("world");
-let canvas, ctx, W=0, H=0, t=0, phase="idle", choice=0, camera=0, targetCamera=0, raf=0;
-const palette={sky:"#b9c9c5",sky2:"#e1d8c2",mount:"#81938a",mount2:"#647c75",concrete:"#9a9a8b",navy:"#243b4a",blue:"#607d89",cream:"#e9dfc6",gold:"#d2b77c",skin:"#9c6c55",hair:"#29252a",paper:"#d8c7a4",red:"#9e514b"};
-function poly(points,fill,stroke="#34434a",lw=2){ctx.beginPath();points.forEach((p,i)=>i?ctx.lineTo(p[0],p[1]):ctx.moveTo(p[0],p[1]));ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.lineWidth=lw;ctx.strokeStyle=stroke;ctx.stroke();}}
-function rect(x,y,w,h,c,stroke="#34434a",lw=2){ctx.fillStyle=c;ctx.fillRect(x,y,w,h);if(stroke){ctx.lineWidth=lw;ctx.strokeStyle=stroke;ctx.strokeRect(x,y,w,h);}}
-function ellipse(x,y,rx,ry,c,stroke="#34434a",lw=2){ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fillStyle=c;ctx.fill();if(stroke){ctx.lineWidth=lw;ctx.strokeStyle=stroke;ctx.stroke();}}
-function line(x1,y1,x2,y2,c="#34434a",lw=3){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.strokeStyle=c;ctx.lineWidth=lw;ctx.lineCap="round";ctx.stroke();}
-function paperShadow(){ctx.shadowColor="rgba(20,35,40,.22)";ctx.shadowBlur=0;ctx.shadowOffsetX=6;ctx.shadowOffsetY=7;}
-function resetShadow(){ctx.shadowColor="transparent";ctx.shadowBlur=0;ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;}
-function cutout(points,fill){paperShadow();poly(points,fill);resetShadow();}
-function text(str,x,y,size,color="#f7f0df",align="center",font="Georgia"){ctx.font=size+"px "+font;ctx.textAlign=align;ctx.fillStyle=color;ctx.fillText(str,x,y);}
-function background(){
-  const g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,palette.sky);g.addColorStop(.62,palette.sky2);g.addColorStop(1,"#c2b69d");rect(0,0,W,H,g,null);
-  // floating paper clouds
-  for(let i=0;i<5;i++){let x=((i*237-t*.12)%(W+180)+W+180)%(W+180)-90,y=H*.15+(i%3)*H*.055;cutout([[x-48,y],[x-28,y-17],[x-4,y-13],[x+12,y-28],[x+38,y-15],[x+52,y+2],[x+25,y+13],[x-36,y+12]],"#e9e5d8");}
-  // distant layered hills
-  const shift=(camera*.13)%W;
-  for(let i=0;i<3;i++){let y=H*.48+i*H*.07;ctx.beginPath();ctx.moveTo(-W,y);for(let x=-W;x<2*W;x+=70){ctx.lineTo(x+shift+i*25,y+Math.sin((x+t*.03+i*60)/115)*22);}ctx.lineTo(2*W,H);ctx.lineTo(-W,H);ctx.closePath();ctx.fillStyle=[palette.mount,palette.mount2,"#526e68"][i];ctx.fill();}
-  // runway + folded paper markings
-  rect(0,H*.73,W,H*.27,"#777f79",null);poly([[0,H*.73],[W,H*.68],[W,H*.77],[0,H*.82]],"#a4a08e",null);
-  for(let i=0;i<8;i++){let x=((i*170-camera*.65)%(W+100)+W+100)%(W+100);poly([[x,H*.78],[x+55,H*.775],[x+77,H*.79],[x+20,H*.8]],"#e6dfc8",null);}
-  // hangar as a folded paper stage
-  const hx=W*.08-camera*.3,hy=H*.36,hw=W*.37,hh=H*.4;
-  cutout([[hx,hy+hh],[hx,hy+hh*.28],[hx+hw*.18,hy],[hx+hw,hy+hh*.13],[hx+hw,hy+hh],[hx+hw*.85,hy+hh]],"#d4d0c1");
-  poly([[hx,hy+hh*.28],[hx+hw*.18,hy],[hx+hw*.18,hy+hh*.8],[hx,hy+hh]],"#b5b5a7");
-  rect(hx+hw*.27,hy+hh*.4,hw*.58,hh*.6,"#485d64","#3d5055",3);
-  for(let i=0;i<4;i++)line(hx+hw*(.32+i*.14),hy+hh*.43,hx+hw*(.32+i*.14),hy+hh,"#c5c4b5",2);
-}
-function drawMara(x,y,s=1,turn=0){
-  ctx.save();ctx.translate(x,y);ctx.scale(s,s);ctx.rotate(turn);
-  // feet, legs and torso are separate paper layers
-  cutout([[-21,0],[-4,0],[-5,-70],[-24,-70]],"#283b48");cutout([[7,0],[25,0],[26,-70],[9,-70]],"#314958");
-  cutout([[-33,-5],[-4,-5],[-5,5],[-38,5]],"#1d2e3a");cutout([[5,-5],[35,-5],[40,5],[8,5]],"#1d2e3a");
-  cutout([[-29,-145],[28,-145],[35,-65],[22,-50],[-22,-50],[-37,-67]],palette.blue);
-  poly([[-29,-145],[-4,-135],[-5,-58],[-22,-50],[-37,-67]],"#4e6c7b");
-  poly([[28,-145],[4,-135],[5,-58],[22,-50],[35,-65]],"#79929a");
-  line(-18,-126,18,-126,palette.gold,4);rect(-5,-121,10,30,palette.gold,null);
-  // arms, paper joints
-  cutout([[-28,-137],[-44,-125],[-55,-76],[-43,-69],[-25,-112]],"#637f8c");
-  cutout([[28,-137],[44,-124],[54,-83],[43,-75],[25,-112]],"#79939a");
-  ellipse(-49,-71,8,10,palette.skin);ellipse(49,-77,8,10,palette.skin);
-  // neck and face
-  rect(-8,-164,16,23,palette.skin,null);
-  cutout([[-24,-205],[-17,-225],[0,-233],[18,-224],[26,-203],[22,-174],[9,-161],[-12,-163],[-25,-181]],palette.skin);
-  // hair as an oversized layered silhouette, with side braids
-  cutout([[-27,-204],[-25,-230],[-7,-245],[17,-238],[31,-218],[26,-186],[18,-197],[14,-220],[-4,-214],[-18,-196]],palette.hair);
-  cutout([[-23,-200],[-31,-183],[-27,-153],[-18,-148],[-15,-184]],"#29252a");
-  poly([[17,-224],[27,-211],[25,-184],[18,-173],[15,-199]],"#403039");
-  ellipse(-9,-198,2.5,3,"#25272a",null);ellipse(10,-198,2.5,3,"#25272a",null);
-  line(-5,-179,5,-178,"#704a43",1.5);
-  // stitched patch
-  poly([[-22,-139],[-8,-139],[-8,-124],[-22,-124]],palette.cream);text("CT",-15,-128,8,"#354b55","center","Arial");
-  ctx.restore();
-}
-function drawAircraft(x,y,s=1){
-  ctx.save();ctx.translate(x,y);ctx.scale(s,s);
-  cutout([[-180,-35],[-132,-49],[122,-49],[178,-27],[145,-12],[-145,-12]],"#eee9da");
-  poly([[-30,-49],[20,-130],[38,-130],[18,-49]],"#c8c7ba");
-  poly([[-30,-12],[20,48],[40,48],[15,-12]],"#b7b7aa");
-  poly([[-160,-36],[-187,-68],[-173,-73],[-128,-43]],"#d8d4c6");
-  poly([[130,-36],[171,-62],[181,-55],[164,-25]],"#d8d4c6");
-  poly([[-178,-33],[-156,-40],[-141,-38],[-158,-27]],"#54727e");
-  for(let i=0;i<3;i++){let a=t*.045+i*Math.PI*2/3;line(-183,-35,-183+Math.cos(a)*31,-35+Math.sin(a)*31,"#354b55",4);}
-  line(-70,-47,-70,-12,"#657f88",3);line(-35,-47,-35,-12,"#657f88",3);
-  ctx.restore();
-}
-function sceneFrame(){
-  ctx.clearRect(0,0,W,H);background();
-  const bob=Math.sin(t*.045)*3;
-  // runway props drift slowly to imply depth
-  for(let i=0;i<4;i++){let x=((i*W*.31-camera*.42)%(W+100)+W+100)%(W+100);cutout([[x,H*.68],[x+12,H*.68],[x+10,H*.52],[x+2,H*.52]],"#465c60");}
-  drawAircraft(W*.66-camera*.08,H*.68,.82);
-  // crate with a bright paper seal
-  const px=W*.75-camera*.03,py=H*.66;
-  cutout([[px-34,py-49],[px+32,py-49],[px+38,py],[px-39,py]],"#987c55");
-  rect(px-5,py-48,10,48,palette.gold,null);rect(px-24,py-31,48,14,"#e8dfc8",null);text("M.V.",px,py-20,9,"#354b55","center","Arial");
-  drawMara(W*.34-camera*.08,H*.78+bob,Math.min(1.08,H/650),Math.sin(t*.018)*.018);
-  // scene-specific character rising entrance
-  if(phase==="opening"&&t<180){let rise=Math.max(0,1-t/70);ctx.globalAlpha=1-rise;drawMara(W*.34-camera*.08,H*.78+rise*H*.38,Math.min(1.08,H/650));ctx.globalAlpha=1;}
-  // paper grain / edge vignette
-  const v=ctx.createLinearGradient(0,0,0,H);v.addColorStop(0,"rgba(20,38,46,.13)");v.addColorStop(.2,"transparent");v.addColorStop(.78,"transparent");v.addColorStop(1,"rgba(20,38,46,.35)");rect(0,0,W,H,v,null);
-  text("KIJANI AIRFIELD",W-28, H-25,10,"#f1ead9","right","Arial");
-}
-function animate(){t++;camera+=(targetCamera-camera)*.025;sceneFrame();raf=requestAnimationFrame(animate);}
-function resize(){W=canvas.width=Math.floor(innerWidth*Math.min(devicePixelRatio||1,1.6));H=canvas.height=Math.floor(innerHeight*Math.min(devicePixelRatio||1,1.6));canvas.style.width="100%";canvas.style.height="100%";ctx.setTransform(1,0,0,1,0,0);}
-function voice(who,words){if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(words);u.rate=who==="MARA"?.94:.88;u.pitch=who==="MARA"?1.02:who==="ELIAS"?.78:1.12;const vs=speechSynthesis.getVoices();const v=who==="MARA"?vs.find(x=>/female|zira|samantha|aria|jenny/i.test(x.name)):vs.find(x=>/male|david|mark|guy|daniel/i.test(x.name));if(v)u.voice=v;speechSynthesis.speak(u);}
-function subtitle(who,words){$("who").textContent=who;$("line").textContent=words;voice(who,words);}
-function hideCard(){$("card").style.display="none";}
-function card(tag,title,body,buttons){$("eyebrow").textContent=tag;$("cardtitle").textContent=title;$("body").textContent=body;const a=$("actions");a.innerHTML="";buttons.forEach(b=>{const el=document.createElement("button");el.textContent=b.label;if(b.secondary)el.className="secondary";el.onclick=b.run;a.appendChild(el);});$("card").style.display="block";}
-function shot(x){targetCamera=x;}
-function begin(){phase="opening";t=0;$("start").style.display="none";$("skip").style.display="block";shot(0);subtitle("RADIO CONTROL","Mara, do you copy?");setTimeout(()=>{if(phase!=="opening")return;subtitle("MARA","Copy. I'm at the aircraft. What's changed?");},2300);setTimeout(()=>{if(phase!=="opening")return;shot(95);subtitle("CAPTAIN ELIAS","Your flight plan just changed. You're leaving in twelve minutes.");},4900);setTimeout(()=>{if(phase!=="opening")return;subtitle("MARA","I was told this was a routine evaluation.");card("INCOMING ORDERS","A mission you never accepted","A sealed package must be delivered to Ndera Clinic. No route details. No cargo manifest. One instruction: do not open it.",[{label:"ASK WHY YOU WERE CHOSEN",run:()=>{choice++;hideCard();subtitle("MARA","Why me? And why is the package sealed?");setTimeout(()=>{if(phase!=="opening")return;subtitle("ELIAS","Because it was addressed to you. Personally.");showPackage();},2200);}},{label:"DEMAND THE FULL BRIEFING",secondary:true,run:()=>{choice--;hideCard();subtitle("MARA","I don't move until I see the full briefing.");setTimeout(()=>{if(phase!=="opening")return;subtitle("ELIAS","Then look at the package. There's something you need to see.");showPackage();},2200);}}]);},7600);}
-function showPackage(){phase="package";shot(180);$("hint").style.display="block";$("hint").textContent="THE PACKAGE IS WAITING · CHOOSE TO INSPECT";card("OBJECTIVE 01","Something is wrong with the seal","The package is on the trolley beside the aircraft. You don't need to walk anywhere. Choose what Mara does next.",[{label:"INSPECT THE PACKAGE",run:inspect},{label:"LEAVE IT SEALED",secondary:true,run:futureMessage}]);}
-function inspect(){phase="inspect";hideCard();shot(235);$("hint").style.display="none";subtitle("MARA","This seal...");setTimeout(()=>{if(phase!=="inspect")return;subtitle("MARA","It has my name. And a date seventeen years from now.");card("UNAUTHORISED OBJECT","17 YEARS IN THE FUTURE","The label reads: MARA V. / FLIGHT 001 / RETURN TO SENDER. The seal bears the same insignia as the patch on Mara's flight suit.",[{label:"BREAK THE SEAL",run:openPackage},{label:"CALL ELIAS FIRST",secondary:true,run:callElias}]);},1900);}
-function callElias(){hideCard();phase="call";subtitle("MARA","Captain, the package is addressed to me. The date is impossible.");setTimeout(()=>{if(phase!=="call")return;subtitle("ELIAS","Do not open it. I'm serious, Mara. Whatever you hear, do not open it.");card("WARNING","He knows what's inside","For the first time, the captain sounds afraid. The radio channel is still open.",[{label:"OPEN IT ANYWAY",run:openPackage},{label:"OBEY THE ORDER",secondary:true,run:futureMessage}]);},2100);}
-function openPackage(){hideCard();phase="reveal";shot(270);subtitle("MARA","I'm opening it.");setTimeout(()=>{if(phase!=="reveal")return;subtitle("UNKNOWN WOMAN","Mara. If you can hear this, the first flight has already happened.");setTimeout(()=>{if(phase!=="reveal")return;subtitle("UNKNOWN WOMAN","You must not let me board that aircraft.");card("RECORDED MESSAGE · DATE UNKNOWN","The voice is yours.","The recording is unmistakably Mara's voice. Older. Exhausted. Behind her, an alarm is counting down. Then she says one more thing.",[{label:"ASK WHO SHE IS",run:()=>finish(true)},{label:"ASK WHAT HAPPENED",secondary:true,run:()=>finish(true)}]);},2600);},1900);}
-function futureMessage(){phase="future";hideCard();shot(90);subtitle("RADIO CONTROL","Mara... we have a problem.");setTimeout(()=>{if(phase!=="future")return;subtitle("UNKNOWN WOMAN","Don't take off. Please. I know what happens if you do.");card("UNKNOWN TRANSMISSION","A voice with your face","The signal has no source. The voice sounds exactly like Mara, but the timestamp is seventeen years ahead.",[{label:"TRACE THE SIGNAL",run:()=>finish(false)},{label:"ASK HER WHAT HAPPENS",secondary:true,run:()=>finish(false)}]);},2100);}
-function finish(opened){phase="ending";hideCard();$("skip").style.display="none";$("hint").style.display="none";$("ending").style.display="flex";if(opened){$("endtitle").textContent="YOU WERE NEVER THE FIRST.";$("endcopy").textContent="Inside the package is a flight recorder. It contains a recording of Mara, seventeen years older, warning her not to board. The last frame shows the same airfield. The same aircraft. And someone standing behind her.";$("endmicro").textContent="TIMELINE INTEGRITY: 61% · OBJECT OPENED";}else{$("endtitle").textContent="SHE KNOWS YOUR NEXT MOVE.";$("endcopy").textContent="Mara leaves the package sealed. The radio goes silent. Then the aircraft's cockpit lights switch on by themselves. A voice comes through the headset: 'Thank you for not opening it. Now please don't let me land.'";$("endmicro").textContent="TIMELINE INTEGRITY: 84% · OBJECT SEALED";}if(window.speechSynthesis){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(opened?"You were never the first.":"She knows your next move.");u.rate=.85;speechSynthesis.speak(u);}}
-function init(){canvas=document.createElement("canvas");canvas.id="cardboard-stage";canvas.style.cssText="position:absolute;inset:0;width:100%;height:100%;display:block";world.appendChild(canvas);ctx=canvas.getContext("2d");resize();animate();$("begin").onclick=begin;$("replay").onclick=()=>location.reload();$("skip").onclick=()=>{if(phase==="opening"){hideCard();showPackage();}else if(phase!=="ending"){hideCard();showPackage();}};window.addEventListener("resize",resize);}
-init();
+const $=id=>document.getElementById(id),root=$("stage");
+const canvas=document.createElement("canvas"),ctx=canvas.getContext("2d");root.appendChild(canvas);
+let W=0,H=0,D=1,frame=0,scene=0,shake=0,particles=[],lastCaption="";
+const C={ink:"#263c45",navy:"#172d3b",blue:"#6e8991",blue2:"#91a5a3",paper:"#e9e2d2",gold:"#d9bd7e",skin:"#a16f57",hair:"#28252b",red:"#a9584e",hill:"#70877c"};
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),mix=(a,b,t)=>a+(b-a)*t,ease=t=>{t=clamp(t);return t*t*(3-2*t)};
+function resize(){D=Math.min(devicePixelRatio||1,1.6);W=innerWidth;H=innerHeight;canvas.width=W*D;canvas.height=H*D;ctx.setTransform(D,0,0,D,0,0);}
+addEventListener("resize",resize);resize();
+function poly(p,fill,stroke=C.ink,lw=2){ctx.beginPath();p.forEach((v,i)=>i?ctx.lineTo(v[0],v[1]):ctx.moveTo(v[0],v[1]));ctx.closePath();ctx.fillStyle=fill;ctx.fill();if(stroke){ctx.lineWidth=lw;ctx.strokeStyle=stroke;ctx.stroke();}}
+function rect(x,y,w,h,c){ctx.fillStyle=c;ctx.fillRect(x,y,w,h);}
+function ellipse(x,y,rx,ry,c,stroke=C.ink,lw=2){ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2);ctx.fillStyle=c;ctx.fill();if(stroke){ctx.lineWidth=lw;ctx.strokeStyle=stroke;ctx.stroke();}}
+function line(x,y,X,Y,c=C.ink,lw=3){ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(X,Y);ctx.strokeStyle=c;ctx.lineWidth=lw;ctx.lineCap="round";ctx.stroke();}
+function shadow(){ctx.shadowColor="rgba(10,25,31,.28)";ctx.shadowBlur=0;ctx.shadowOffsetX=6;ctx.shadowOffsetY=7;}
+function unshadow(){ctx.shadowColor="transparent";ctx.shadowBlur=0;ctx.shadowOffsetX=0;ctx.shadowOffsetY=0;}
+function cut(p,c){shadow();poly(p,c);unshadow();}
+function text(s,x,y,size,c="#fff",align="center",font="Georgia"){ctx.font=size+"px "+font;ctx.textAlign=align;ctx.fillStyle=c;ctx.fillText(s,x,y);}
+function say(who,words){const cap=$("caption");$("speaker").textContent=who;$("words").textContent=words;cap.style.opacity=1;if(window.speechSynthesis){speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(words);u.rate=who==="MARA"?.96:who==="CHILD"?.88:.9;u.pitch=who==="MARA"?1.0:who==="CHILD"?1.38:.78;u.volume=.95;const voices=speechSynthesis.getVoices();let v=who==="CHILD"?voices.find(x=>/female|samantha|aria|jenny/i.test(x.name)):who==="MARA"?voices.find(x=>/female|zira|samantha|aria/i.test(x.name)):voices.find(x=>/male|david|mark|daniel/i.test(x.name));if(v)u.voice=v;speechSynthesis.speak(u);}}
+function hush(){ $("caption").style.opacity=0; if(window.speechSynthesis)speechSynthesis.cancel();}
+function burst(x,y,n=30,speed=7){for(let i=0;i<n;i++){let a=Math.random()*Math.PI*2,v=(.3+Math.random())*speed;particles.push({x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:35+Math.random()*45,r:2+Math.random()*5,rot:Math.random()*6,spin:(Math.random()-.5)*.3});}}
+function drawParticles(){for(let i=particles.length-1;i>=0;i--){let p=particles[i];p.x+=p.vx;p.y+=p.vy;p.vy+=.12;p.vx*=.99;p.life--;p.rot+=p.spin;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);rect(-p.r,-p.r,p.r*2,p.r*2,p.life%2?C.paper:C.gold);ctx.restore();if(p.life<=0)particles.splice(i,1);}}
+function paperSky(time,mood=0){let g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,mood?"#536c78":"#a8c0bb");g.addColorStop(.58,mood?"#9a8c80":"#e5d9c2");g.addColorStop(1,"#c2b69e");rect(0,0,W,H,g);for(let i=0;i<6;i++){let x=((i*W/4-time*.42)%(W+240)+W+240)%(W+240)-120,y=H*(.12+(i%3)*.09);cut([[x-58,y+10],[x-33,y-13],[x-4,y-9],[x+14,y-31],[x+49,y-15],[x+64,y+9],[x+26,y+22],[x-42,y+21]],"#eee9dc");}
+ for(let l=0;l<3;l++){let base=H*(.47+l*.075);ctx.beginPath();ctx.moveTo(0,H);for(let x=0;x<=W+20;x+=35){let y=base+Math.sin((x+time*(.22+l*.11))/100+l*2)*H*.022;ctx.lineTo(x,y);}ctx.lineTo(W,H);ctx.closePath();ctx.fillStyle=["#91a59a","#728a7e","#526e67"][l];ctx.fill();}}
+function drawHangar(time){let x=W*.07-time*.08,y=H*.35,w=W*.43,h=H*.4;cut([[x,y+h],[x,y+h*.25],[x+w*.2,y],[x+w,y+h*.12],[x+w,y+h],[x+w*.86,y+h]],"#d8d3c2");poly([[x,y+h*.25],[x+w*.2,y],[x+w*.2,y+h*.8],[x,y+h]],"#b6b8ae");rect(x+w*.26,y+h*.4,w*.61,h*.6,"#425a63");for(let i=0;i<5;i++)line(x+w*(.3+i*.12),y+h*.42,x+w*(.3+i*.12),y+h,"#c9c7b8",2);for(let i=0;i<3;i++){let lx=x+w*(.35+i*.2);line(lx,y+10,lx,y-28,C.gold,3);ellipse(lx,y-30,5,5,"#ffe5a4",null);}}
+function drawCity(time,collapse=0){let base=H*.72;for(let i=0;i<12;i++){let x=i*W/10-(time*.5%W),ww=55+(i%4)*18,hh=80+(i*37%170);let fold=collapse* Math.sin(i*3+time*.08)*65;ctx.save();ctx.translate(x,base);ctx.rotate(collapse*(i%2?-.16:.18));cut([[-ww/2,0],[-ww/2,-hh+fold],[0,-hh-18+fold],[ww/2,-hh+fold],[ww/2,0]],i%2?"#c9c2ae":"#d9d0bb");for(let wy=-hh+24;wy<-10;wy+=28)for(let wx=-ww/2+13;wx<ww/2-5;wx+=22)rect(wx,wy,8,12,i%3?"#758d8d":"#e5c98c");ctx.restore();}}
+function drawMara(x,y,s=1,pose="stand",angle=0){ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.scale(s,s);let run=pose==="run"?Math.sin(frame*.27)*.65:pose==="fall"?-.9:0;
+ // boots + jointed legs
+ ctx.save();ctx.rotate(run);cut([[-21,-7],[-4,-7],[-8,-80],[-27,-78]],"#263d49");cut([[-31,-4],[-3,-4],[-4,5],[-35,5]],"#1c2c35");ctx.restore();
+ ctx.save();ctx.translate(8,-5);ctx.rotate(-run*.85);cut([[-8,-8],[12,-8],[25,-78],[7,-81]],"#314957");cut([[8,-4],[37,-4],[43,5],[9,5]],"#1c2c35");ctx.restore();
+ // torso and flight jacket
+ cut([[-35,-218],[31,-218],[40,-82],[23,-63],[-26,-63],[-43,-83]],C.blue);
+ poly([[-35,-218],[-3,-208],[-7,-65],[-26,-63],[-43,-83]],"#526f7b");
+ poly([[31,-218],[5,-207],[7,-65],[23,-63],[40,-82]],"#8ca1a0");
+ line(-19,-193,20,-193,C.gold,4);rect(-5,-186,10,29,C.gold);
+ // arms swing independently
+ ctx.save();ctx.translate(-31,-204);ctx.rotate(pose==="run"?-run-.5:pose==="reach"?-.95:.18);cut([[-8,-8],[-23,0],[-36,59],[-22,68],[-3,20]],"#607d88");ellipse(-29,68,8,10,C.skin);ctx.restore();
+ ctx.save();ctx.translate(31,-204);ctx.rotate(pose==="run"?run+.5:pose==="reach"?-1.1:-.2);cut([[8,-8],[23,0],[36,59],[22,68],[3,20]],"#81999b");ellipse(29,68,8,10,C.skin);ctx.restore();
+ rect(-9,-247,18,31,C.skin);
+ cut([[-28,-294],[-22,-324],[0,-339],[24,-325],[31,-296],[26,-254],[8,-237],[-15,-244],[-29,-264]],C.skin);
+ cut([[-32,-295],[-29,-330],[-7,-352],[22,-344],[39,-315],[30,-278],[19,-304],[-6,-309],[-22,-280]],C.hair);
+ poly([[-26,-291],[-36,-271],[-31,-238],[-20,-229],[-17,-273]],"#29252b");
+ ellipse(-10,-289,2.6,3,"#27272a",null);ellipse(11,-289,2.6,3,"#27272a",null);line(-5,-265,5,-264,"#704a43",1.5);
+ poly([[-22,-205],[-8,-205],[-8,-190],[-22,-190]],C.paper);text("CT",-15,-194,8,C.ink,"center","Arial");
+ ctx.restore();}
+function drawPlane(x,y,s=1,rot=0){ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.scale(s,s);cut([[-180,-28],[-138,-49],[122,-49],[184,-26],[144,-8],[-148,-8]],"#eeeadd");poly([[-33,-47],[17,-137],[39,-137],[18,-47]],"#c9c8ba");poly([[-30,-8],[19,52],[42,52],[16,-8]],"#b8b9ae");poly([[-160,-30],[-189,-64],[-174,-70],[-128,-39]],"#d7d2c5");ellipse(-183,-35,7,7,C.gold,null);ctx.restore();}
+function drawChild(x,y,s=1){ctx.save();ctx.translate(x,y);ctx.scale(s,s);cut([[-18,-7],[-3,-7],[-5,-48],[-20,-48]],"#6b6d73");cut([[4,-7],[19,-7],[22,-48],[8,-48]],"#555c68");cut([[-24,-95],[24,-95],[28,-48],[-27,-48]],"#c06f62");ellipse(0,-116,21,24,C.skin);cut([[-23,-119],[-20,-143],[2,-151],[24,-132],[18,-113],[9,-131],[-10,-129]],"#3a2a28");ctx.restore();}
+function shotAirfield(time){paperSky(time);drawHangar(time);rect(0,H*.73,W,H*.27,"#737e78");for(let i=0;i<8;i++){let x=(i*190-time*.6)%(W+100);rect(x,H*.82,70,6,"#e9e0c8");}drawPlane(W*.68,H*.73,.82);drawMara(W*.36,H*.79,Math.min(1.12,H/690),"stand");drawChild(W*.18,H*.77,.72);text("KIJANI AIRFIELD",W-28,H-24,10,"#f3ead7","right","Arial");}
+function shotTakeoff(time){paperSky(time);drawHangar(time);drawCity(time*.3,0);let p=clamp((time-260)/230);drawPlane(mix(W*.68,W*.53,ease(p)),mix(H*.72,H*.2,ease(p)),mix(.82,.53,p),-.2-p*.1);drawMara(W*.35,H*.79,Math.min(1.08,H/690),"reach");for(let i=0;i<18;i++){let x=(i*90-time*3)%(W+40);line(x,H*.68,x-45,H*.69,"#f7f0dd",1.5);} }
+function shotStorm(time){paperSky(time,1);drawCity(time*.6,.3);let shakeX=Math.sin(frame*.8)*12;drawPlane(W*.5+shakeX,H*.44+Math.sin(frame*.4)*16,.95,Math.sin(frame*.5)*.1);drawMara(W*.5,H*.74,Math.min(1.2,H/620),"reach",Math.sin(frame*.6)*.08);for(let i=0;i<35;i++){let x=(i*77+frame*9)%(W+60)-30,y=(i*43+frame*13)%(H+30)-15;line(x,y,x-45,y+10,"#e9e5d8",1.3);} }
+function shotImpossible(time){paperSky(time,1);drawCity(time,.95);let p=clamp((time-740)/150);drawPlane(mix(W*1.1,W*.36,ease(p)),mix(-H*.3,H*.54,ease(p)),1.1,.32+Math.sin(frame*.09)*.06);for(let i=0;i<60;i++){let x=(i*71+frame*3)%(W+20),y=(i*37-frame*5)%(H+20);ctx.save();ctx.translate(x,y);ctx.rotate(frame*.03+i);rect(-8,-5,16,10,i%2?"#e9e1d0":"#d6bc80");ctx.restore();}drawMara(W*.7,H*.77,Math.min(1.12,H/650),"fall",-.2);}
+function shotMemory(time){let g=ctx.createLinearGradient(0,0,W,H);g.addColorStop(0,"#e7d8b8");g.addColorStop(1,"#9aaca1");rect(0,0,W,H,g);for(let i=0;i<5;i++){let x=W*.2+i*W*.14;poly([[x,H*.76],[x,H*.3],[x+70,H*.18],[x+140,H*.3],[x+140,H*.76]],i%2?"#d9cfb8":"#c8c4b3");}drawChild(W*.52,H*.78,1.3);drawMara(W*.78,H*.8,1.15,"reach");}
+function shotCollapse(time){paperSky(time,1);drawCity(time,.9);let p=clamp((time-1100)/180);drawPlane(mix(W*.5,W*.9,ease(p)),mix(H*.5,-H*.25,ease(p)),.95,-.45);drawMara(W*.4,H*.78,Math.min(1.2,H/640),"reach",-.45);let g=ctx.createRadialGradient(W*.5,H*.4,20,W*.5,H*.4,W*.8);g.addColorStop(0,"rgba(238,221,182,0)");g.addColorStop(1,"rgba(5,19,28,.82)");rect(0,0,W,H,g);}
+function sceneFor(f){if(f<260)shotAirfield(f);else if(f<500)shotTakeoff(f);else if(f<740)shotStorm(f);else if(f<1010)shotImpossible(f);else if(f<1210)shotMemory(f);else shotCollapse(f);}
+const cues=[
+[55,"CHILD","Mum? You promised you'd come home."],
+[145,"MARA","I know, little star. One flight. Then I'm yours."],
+[285,"CONTROL","Flight 001, you are cleared for departure. No deviations."],
+[430,"MARA","Control... why is the runway getting longer?"],
+[535,"CONTROL","Mara, abort. Your aircraft is appearing on radar twice."],
+[680,"MARA","That's impossible. I'm looking at myself."],
+[790,"FUTURE MARA","DO NOT LAND. THAT IS NOT THE CITY."],
+[920,"MARA","Who are you?"],
+[1035,"CHILD","Mum? I'm still waiting."],
+[1145,"MARA","I promised I'd come home."],
+[1285,"FUTURE MARA","Then stop trying to reach the past."]
+];
+let cueIndex=0,started=false;
+function startStory(){if(started)return;started=true;let tc=$("titlecard");setTimeout(()=>{tc.style.opacity=0;setTimeout(()=>tc.style.display="none",1400);},1700);setTimeout(()=>{say("CHILD","Mum? You promised you'd come home.");},2400);}
+function loop(){frame++;let f=frame;sceneFor(f);drawParticles();if(f===220)burst(W*.68,H*.52,24,5);if(f===490)burst(W*.52,H*.5,45,9);if(f===745)burst(W*.4,H*.45,70,12);if(f===1010){hush();say("CHILD","Mum? I'm still waiting.");}if(f===1210){hush();}if(f>1390){$("endcard").style.display="grid";requestAnimationFrame(()=> $("endcard").style.opacity=1);if(f===1392){hush();say("FUTURE MARA","You were never flying to the future. The future was trying to get back to you.");}}else{for(let i=cueIndex;i<cues.length;i++){if(f===cues[i][0]){cueIndex=i+1;say(cues[i][1],cues[i][2]);break;}}}requestAnimationFrame(loop);}
+startStory();loop();
