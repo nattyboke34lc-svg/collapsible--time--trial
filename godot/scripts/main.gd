@@ -427,7 +427,7 @@ func _draw_mara() -> void:
 	var moving := abs(velocity.x) > 25.0 and y >= GROUND_Y - 2.0
 	var stride := sin(anim_time * (14.0 if Input.is_key_pressed(KEY_SHIFT) else 9.0)) * (15.0 if moving else 0.0)
 	var lean := -0.10 if moving and facing > 0 else (0.10 if moving else 0.0)
-	draw_set_transform(Vector2(x, y), lean, Vector2(facing, 1.0))
+	draw_set_transform(Vector2(x - camera_x, y), lean, Vector2(facing, 1.0))
 	# Folded paper shadow
 	draw_colored_polygon(PackedVector2Array([Vector2(-35, 2), Vector2(-20, -5), Vector2(28, -5), Vector2(40, 2)]), Color(0.12, 0.19, 0.20, 0.35))
 	# Legs and boots
