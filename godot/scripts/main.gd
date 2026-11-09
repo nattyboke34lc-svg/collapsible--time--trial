@@ -23,6 +23,7 @@ var anim_time := 0.0
 var caption_time := 0.0
 var checkpoint_x := 120.0
 var last_grounded := true
+var jump_requested := false
 var outcome := ""
 
 var gaps := [Vector2(1480, 1640), Vector2(2920, 3085)]
@@ -149,6 +150,8 @@ func _input(event: InputEvent) -> void:
 			started = true
 			set_caption("AIRFIELD 07:10\n\nThe hangar doors are open. Your aircraft is waiting beyond the control building. Find the flight orders first.\n\nMove with A / D or the arrow keys. Jump with SPACE. Press E to interact.", 0.0)
 			objective.text = "OBJECTIVE  /  FIND THE FLIGHT ORDERS"
+		elif started and not ended and not decision_pending and (event.keycode == KEY_SPACE or event.keycode == KEY_W or event.keycode == KEY_UP):
+			jump_requested = true
 		elif decision_pending and event.keycode == KEY_1:
 			_choose_delivery()
 		elif decision_pending and event.keycode == KEY_2:
@@ -179,9 +182,10 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, direction * target_speed, 1800.0 * delta)
 
 		var grounded := _is_grounded()
-		if grounded and (Input.is_key_just_pressed(KEY_SPACE) or Input.is_key_just_pressed(KEY_W) or Input.is_key_just_pressed(KEY_UP)):
+		if grounded and jump_requested:
 			velocity.y = JUMP_VELOCITY
 			grounded = false
+		jump_requested = false
 		if not grounded:
 			velocity.y += GRAVITY * delta
 		else:
