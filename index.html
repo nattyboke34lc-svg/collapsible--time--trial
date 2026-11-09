@@ -1,25 +1,23 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#07131e"><title>COLLAPSIBLE TIME | THE LAST FLIGHT</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no"><meta name="theme-color" content="#102633"><title>COLLAPSIBLE TIME | THE LAST FLIGHT</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#07131e;color:#f5f1e8;font-family:Inter,system-ui,Arial,sans-serif}#world{position:fixed;inset:0}#world canvas{width:100%;height:100%;display:block}
-#shade{position:fixed;inset:0;pointer-events:none;background:linear-gradient(180deg,#06121c99 0%,transparent 26%,transparent 58%,#06121cbb 100%);z-index:1}
-#top{position:fixed;z-index:3;top:18px;left:22px;right:22px;display:flex;justify-content:space-between;align-items:flex-start;pointer-events:none}.logo{font-size:10px;letter-spacing:.25em;font-weight:900;color:#e9cb8d}.chapter{font:italic 13px Georgia,serif;color:#e9e4d8;margin-top:7px}.signal{font-size:9px;letter-spacing:.15em;color:#d1d9d9;text-align:right}
-#subtitles{position:fixed;z-index:4;left:50%;bottom:clamp(130px,19vh,190px);transform:translateX(-50%);width:min(720px,calc(100% - 34px));text-align:center;pointer-events:none;text-shadow:0 2px 14px #000}.who{font-size:10px;letter-spacing:.22em;color:#e9cb8d;font-weight:900;margin-bottom:8px}.line{font:clamp(19px,3vw,29px)/1.35 Georgia,serif;color:#fff}
-#card{position:fixed;z-index:6;left:50%;bottom:24px;transform:translateX(-50%);width:min(610px,calc(100% - 28px));padding:18px 20px;background:linear-gradient(120deg,#091b2bed,#102b3beF);border:1px solid #d8bd83aa;box-shadow:0 18px 70px #0008;display:none}.eyebrow{font-size:9px;letter-spacing:.22em;color:#e9cb8d;font-weight:900}.cardtitle{font:clamp(24px,4vw,34px)/1.05 Georgia,serif;margin:9px 0}.body{font-size:13px;line-height:1.65;color:#d5dfe1;margin:0 0 14px}.actions{display:flex;gap:9px;flex-wrap:wrap}button{border:1px solid #e4c987;background:#e4c987;color:#10202a;padding:13px 17px;font-size:10px;font-weight:900;letter-spacing:.1em;cursor:pointer;touch-action:manipulation}button.secondary{background:#102633;color:#f1dfb6;border-color:#78909a}button:active{transform:scale(.98)}
-#hint{position:fixed;z-index:3;left:50%;top:20%;transform:translateX(-50%);padding:8px 13px;background:#061722aa;border:1px solid #ffffff35;color:#e8e4d9;font-size:9px;letter-spacing:.14em;white-space:nowrap;display:none}
-#skip{position:fixed;z-index:5;right:20px;bottom:22px;background:#091a28b8;color:#d8e1e2;border:1px solid #ffffff44;padding:9px 12px;font-size:9px;display:none}
-#meter{position:fixed;z-index:3;left:22px;top:70px;width:160px;display:none}.meterlabel{font-size:9px;letter-spacing:.16em;color:#e6d6ae}.track{height:3px;background:#ffffff3b;margin-top:7px}.fill{height:100%;width:0;background:#e4c987;transition:width .6s}
-#start,#ending{position:fixed;inset:0;z-index:10;display:flex;align-items:center;justify-content:center;padding:22px;background:linear-gradient(120deg,#06131df5,#0d2a3be6)}.panel{width:min(700px,100%);padding:clamp(25px,5vw,52px);border-left:3px solid #e3c583;background:linear-gradient(130deg,#0a1c2bea,#102b3ce8);box-shadow:0 25px 100px #0009}.tag{font-size:10px;letter-spacing:.28em;color:#e9cb8d;font-weight:900}.title{font:clamp(55px,11vw,104px)/.82 Georgia,serif;letter-spacing:-.055em;margin:22px 0}.intro{max-width:540px;color:#d6e0e2;font:16px/1.7 Georgia,serif}.micro{font-size:9px;letter-spacing:.17em;color:#99adb8;margin:24px 0 18px}
-#ending{display:none}.endtitle{font:clamp(43px,8vw,75px)/.92 Georgia,serif;margin:18px 0}.endcopy{font:16px/1.7 Georgia,serif;color:#d4dfe0;max-width:540px}
-@media(max-width:600px){#top{top:13px;left:14px;right:14px}.signal{font-size:8px}#meter{left:14px;top:62px}#subtitles{bottom:170px}.line{font-size:20px}#card{bottom:14px;padding:15px}.body{font-size:12px}.actions{display:grid;grid-template-columns:1fr}button{width:100%;padding:14px}}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#102633;color:#f5f0e5;font-family:Georgia,serif}#stage{position:fixed;inset:0}canvas{width:100%;height:100%;display:block}
+#brand{position:fixed;z-index:2;top:18px;left:22px;font:900 10px/1.4 Arial,sans-serif;letter-spacing:.27em;color:#ead39d;text-shadow:0 2px 8px #10202a}#chapter{font:italic 12px Georgia,serif;letter-spacing:.04em;color:#f0e9dc;margin-top:4px}
+#caption{position:fixed;z-index:3;left:50%;bottom:8%;transform:translateX(-50%);width:min(850px,90vw);text-align:center;pointer-events:none;text-shadow:0 3px 18px #07131d;opacity:0;transition:opacity .5s}
+#speaker{font:900 10px Arial,sans-serif;letter-spacing:.24em;color:#e8c987;margin-bottom:12px}
+#words{font:clamp(20px,3vw,34px)/1.3 Georgia,serif;color:#fff}
+#titlecard{position:fixed;inset:0;z-index:4;display:grid;place-content:center;text-align:center;background:#102633;transition:opacity 1.3s}
+#titlecard .over{font:900 10px Arial,sans-serif;letter-spacing:.34em;color:#e5c987}
+#titlecard h1{font:clamp(56px,12vw,132px)/.82 Georgia,serif;letter-spacing:-.065em;margin:26px 0;color:#f3eee1}
+#titlecard p{font:italic clamp(14px,2vw,19px) Georgia,serif;color:#c8d4d0;letter-spacing:.04em}
+#endcard{position:fixed;inset:0;z-index:5;display:none;place-content:center;text-align:center;background:rgba(7,19,29,.87);opacity:0;transition:opacity 2s}
+#endcard .over{font:900 10px Arial,sans-serif;letter-spacing:.3em;color:#e5c987}
+#endcard h2{font:clamp(43px,9vw,92px)/.9 Georgia,serif;margin:24px 16px;color:#f3eee1}
+#endcard p{font:italic 17px Georgia,serif;color:#c8d4d0}
+@media(max-width:600px){#brand{top:13px;left:14px}#caption{bottom:10%;width:92vw}#words{font-size:21px}}
 </style></head><body>
-<div id="world"></div><div id="shade"></div>
-<div id="top"><div><div class="logo">COLLAPSIBLE TIME</div><div class="chapter">Chapter 01 · The Last Flight</div></div><div class="signal">KIJANI AIRFIELD<br><span style="color:#e9cb8d">SIGNAL UNSTABLE</span></div></div>
-<div id="meter"><div class="meterlabel">TIMELINE INTEGRITY <span id="meterpct">100%</span></div><div class="track"><div class="fill" id="fill"></div></div></div>
-<div id="hint">TAP THE HIGHLIGHTED OBJECT</div>
-<div id="subtitles"><div class="who" id="who">RADIO CONTROL</div><div class="line" id="line">Mara, do you copy?</div></div>
-<div id="card"><div class="eyebrow" id="eyebrow">INCOMING TRANSMISSION</div><div class="cardtitle" id="cardtitle">A voice from tomorrow</div><p class="body" id="body">Listen carefully.</p><div class="actions" id="actions"></div></div>
-<button id="skip">SKIP CINEMATIC</button>
-<section id="start"><div class="panel"><div class="tag">A COLLAPSIBLE TIME ORIGINAL</div><h1 class="title">THE LAST<br>FLIGHT</h1><p class="intro">Mara was ordered to deliver a sealed package. She has never seen it before. It already knows her name.</p><div class="micro">A SHORT PLAYABLE STORY · 1 CHOICE CAN CHANGE EVERYTHING</div><button id="begin">BEGIN EXPERIENCE</button></div></section>
-<section id="ending"><div class="panel"><div class="tag">END OF CHAPTER 01 · TO BE CONTINUED</div><h2 class="endtitle" id="endtitle">YOU WERE NEVER THE FIRST.</h2><p class="endcopy" id="endcopy"></p><div class="micro" id="endmicro">YOUR TIMELINE HAS BEEN RECORDED.</div><button id="replay">PLAY AGAIN</button></div></section>
+<div id="stage"></div><div id="brand">COLLAPSIBLE TIME<div id="chapter">Chapter 01 · The Last Flight</div></div>
+<div id="caption"><div id="speaker"></div><div id="words"></div></div>
+<div id="titlecard"><div class="over">A COLLAPSIBLE TIME ORIGINAL</div><h1>THE LAST<br>FLIGHT</h1><p>Some promises outlive the timeline.</p></div>
+<div id="endcard"><div class="over">END OF CHAPTER 01</div><h2>WHO IS<br>WAITING<br>FOR MARA?</h2><p>The timeline remembers what she has not lived yet.</p></div>
 <script type="module" src="./game3d.js"></script></body></html>
