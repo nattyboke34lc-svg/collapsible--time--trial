@@ -21,6 +21,7 @@ A standalone Godot 4 project inside the Collapsible Time repository.
 - E: interact
 - 1 / 2: choose at the final decision
 - R: replay after the chapter ends
+- Touch screens: tap the ground to move, tap the sky to jump, and tap a marked location to approach and interact. Tap after the ending to replay.
 - Enter: begin
 
 ## Chapter 01: The Last Flight
