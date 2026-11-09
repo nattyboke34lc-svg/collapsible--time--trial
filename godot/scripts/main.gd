@@ -4,7 +4,7 @@ const WORLD_WIDTH := 4400.0
 const VIEW_HEIGHT := 720.0
 const GROUND_Y := 580.0
 const PLAYER_HALF_WIDTH := 19.0
-const PLAYER_HEIGHT := 92.0
+const PLAYER_HEIGHT := 205.0
 const WALK_SPEED := 285.0
 const RUN_SPEED := 420.0
 const JUMP_VELOCITY := -650.0
@@ -24,6 +24,8 @@ var caption_time := 0.0
 var checkpoint_x := 120.0
 var last_grounded := true
 var jump_requested := false
+var touch_target_x := -1.0
+var touch_interact_target := false
 var outcome := ""
 
 var gaps := [Vector2(1480, 1640), Vector2(2920, 3085)]
@@ -70,8 +72,8 @@ func _build_interface() -> void:
 	layer.add_child(objective)
 
 	prompt = Label.new()
-	prompt.position = Vector2(440, 514)
-	prompt.size = Vector2(400, 34)
+	prompt.position = Vector2(240, 514)
+	prompt.size = Vector2(800, 34)
 	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	prompt.add_theme_color_override("font_color", Color("#fff0cb"))
 	prompt.add_theme_font_size_override("font_size", 18)
@@ -145,6 +147,28 @@ func set_caption(message: String, duration: float = 8.0) -> void:
 	caption_time = duration
 
 func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch and event.pressed:
+		if not started:
+			started = true
+			set_caption("AIRFIELD 07:10\n\nThe hangar doors are open. Your aircraft is waiting beyond the control building. Find the flight orders first.\n\nTap the ground to move. Tap the sky to jump. Tap a marked location to interact.", 0.0)
+			objective.text = "OBJECTIVE  /  FIND THE FLIGHT ORDERS"
+			return
+		if ended:
+			_restart_chapter()
+			return
+		if started and not decision_pending:
+			if event.position.y < VIEW_HEIGHT * 0.55:
+				jump_requested = true
+			else:
+				var target_x: float = clamp(event.position.x + camera_x, 30.0, WORLD_WIDTH - 50.0)
+				touch_interact_target = false
+				for spot in hotspots:
+					if abs(target_x - float(spot.x)) < 135.0:
+						target_x = float(spot.x)
+						touch_interact_target = true
+						break
+				touch_target_x = target_x
+			return
 	if event is InputEventKey and event.pressed and not event.echo:
 		if not started and event.keycode == KEY_ENTER:
 			started = true
@@ -176,7 +200,19 @@ func _physics_process(delta: float) -> void:
 			direction += 1.0
 
 		if direction != 0.0:
+			touch_target_x = -1.0
 			facing = sign(direction)
+		elif touch_target_x >= 0.0:
+			var touch_distance: float = touch_target_x - player.x
+			if abs(touch_distance) > 24.0:
+				direction = sign(touch_distance)
+			else:
+				touch_target_x = -1.0
+				if touch_interact_target:
+					touch_interact_target = false
+					_interact()
+					if decision_pending:
+						return
 		var running := Input.is_key_pressed(KEY_SHIFT)
 		var target_speed := RUN_SPEED if running else WALK_SPEED
 		velocity.x = move_toward(velocity.x, direction * target_speed, 1800.0 * delta)
@@ -246,9 +282,9 @@ func _update_prompt() -> void:
 			best = distance
 			nearest = spot
 	if best < 125.0:
-		prompt.text = "E   INTERACT  /  " + str(nearest.name)
+		prompt.text = "TAP NEAR  /  " + str(nearest.name) + "     OR PRESS E"
 	else:
-		prompt.text = "SHIFT  RUN     SPACE  JUMP     E  INTERACT"
+		prompt.text = "TAP GROUND TO MOVE  ·  TAP SKY TO JUMP"
 		
 func _update_hud() -> void:
 	var phase := "AIRFIELD"
@@ -301,7 +337,7 @@ func _choose_delivery() -> void:
 	_finish_choice("DELIVERY", "Mara keeps the aircraft on its assigned route. The clinic receives the medical supplies before the storm closes the valley. The unknown voice is not answered.\n\nSome promises are kept. Some questions remain.", "THE CLINIC RECEIVES ITS MEDICINE.\nTHE SIGNAL GOES QUIET.")
 
 func _choose_signal() -> void:
-	_finish_choice("SIGNAL", "Mara turns toward the unknown transmission. Control orders her back. She keeps flying. A second aircraft appears on the radar, matching her altitude and heading exactly.\n\nThe timeline has noticed her.", "SOMEONE ANSWERS.\nTHE RADAR SHOWS TWO MARAS.")
+	_finish_choice("SIGNAL", "Mara turns toward the unknown transmission. Control orders her back. She keeps flying. A second aircraft appears on the radar, matching her altitude and heading exactly. Its transponder carries her own flight number. The date is seventeen years ahead.\n\nThe timeline has noticed her.", "TWO MARAS.\nONE FLIGHT NUMBER.\nSEVENTEEN YEARS OUT OF PLACE.")
 
 func _finish_choice(which: String, message: String, title: String) -> void:
 	outcome = which
@@ -322,6 +358,8 @@ func _restart_chapter() -> void:
 	decision_pending = false
 	ended = false
 	checkpoint_x = 120.0
+	touch_target_x = -1.0
+	touch_interact_target = false
 	outcome = ""
 	choice_panel.visible = false
 	objective.text = "OBJECTIVE  /  REPORT TO FLIGHT CONTROL"
@@ -427,7 +465,7 @@ func _draw_mara() -> void:
 	var moving := abs(velocity.x) > 25.0 and y >= GROUND_Y - 2.0
 	var stride := sin(anim_time * (14.0 if Input.is_key_pressed(KEY_SHIFT) else 9.0)) * (15.0 if moving else 0.0)
 	var lean := -0.10 if moving and facing > 0 else (0.10 if moving else 0.0)
-	draw_set_transform(Vector2(x - camera_x, y), lean, Vector2(facing, 1.0))
+	draw_set_transform(Vector2(x - camera_x, y), lean, Vector2(facing * 0.58, 0.58))
 	# Folded paper shadow
 	draw_colored_polygon(PackedVector2Array([Vector2(-35, 2), Vector2(-20, -5), Vector2(28, -5), Vector2(40, 2)]), Color(0.12, 0.19, 0.20, 0.35))
 	# Legs and boots
