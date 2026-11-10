@@ -1,4 +1,5 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js";
+import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js";
 
 const $ = id => document.getElementById(id);
 const stage = $("stage");
@@ -222,8 +223,48 @@ ground();
   }
 }
 
-const mara=makePerson({coat:M.jacket,trousers:M.pants,hair:M.hair,female:true});
+// Mara is now a fully rigged, animated human character. The model is CC0.
+const mara=new THREE.Group();
 mara.position.set(-9,0,10); scene.add(mara);
+const maraLoader=new GLTFLoader();
+maraLoader.load(
+  "https://cdn.jsdelivr.net/gh/rana-jatin/avatar-stage@main/demo/public/models/demo-avatar.glb",
+  gltf=>{
+    const avatar=gltf.scene;
+    const bounds=new THREE.Box3().setFromObject(avatar);
+    const height=Math.max(.01,bounds.max.y-bounds.min.y);
+    const scale=2.65/height;
+    avatar.scale.setScalar(scale);
+    avatar.position.y=-bounds.min.y*scale;
+    // The source model faces +Z; the game uses -Z as forward.
+    avatar.rotation.y=Math.PI;
+    avatar.traverse(node=>{
+      if(node.isMesh){node.castShadow=true;node.receiveShadow=true;}
+    });
+    mara.add(avatar);
+    const mixer=new THREE.AnimationMixer(avatar);
+    const actions={};
+    for(const clip of gltf.animations){
+      const action=mixer.clipAction(clip);
+      const name=clip.name.toLowerCase();
+      if(name.includes("idle"))actions.idle=action;
+      else if(name.includes("walk"))actions.walk=action;
+      else if(name.includes("run"))actions.run=action;
+      else if(name.includes("jump"))actions.jump=action;
+    }
+    mara.userData.mixer=mixer;
+    mara.userData.actions=actions;
+    mara.userData.currentMotion="";
+    setMaraMotion("idle");
+  },
+  undefined,
+  ()=>{
+    // Keep the scene playable if the external model host is unavailable.
+    const fallback=makePerson({coat:M.jacket,trousers:M.pants,hair:M.hair,female:true});
+    mara.add(fallback);
+    mara.userData.limbs=fallback.userData.limbs;
+  }
+);
 const elias=makePerson({coat:M.red,trousers:mat(0x343d43),hair:mat(0x393331)});
 elias.position.set(-7,0,-3.5); elias.rotation.y=.35; scene.add(elias);
 const manifest=box(scene,"flight manifest",[.65,.09,.9],[-1.2,1.51,-7],M.gold);
@@ -250,21 +291,51 @@ function setObjective(s){$("objective").textContent=s;}
 function showHud(show=true){$("hud").style.opacity=show?1:0;$("controls").style.opacity=show?1:0;$("sound").style.display=show?"block":"none";$("music").style.display=show?"block":"none";}
 function think(words,duration=4){$("thoughtWords").textContent=words;$("thought").style.opacity=1;thoughtTimer=duration;}
 
-let musicContext=null, musicMaster=null, musicTimer=null, musicEnabled=true, melodyStep=0;
+const MUSIC_URL="https://raw.githubusercontent.com/jarlah/dungeon-haskell/master/assets/music/boss.ogg";
+const THUNDER_URL="https://sfxmint.com/dl/city-night-ambience-04.mp3";
+const IMPACT_URL="https://sfxmint.com/dl/horror-stinger-54.mp3";
+const IMPACT_SECOND_URL="https://sfxmint.com/dl/horror-stinger-71.mp3";
+let musicAudio=null,musicEnabled=true,sfxEnabled=true,collapseAudioPlayed=false;
 function startScore(){
- if(!musicEnabled)return;const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
- if(!musicContext){
-  musicContext=new AC();musicMaster=musicContext.createGain();musicMaster.gain.value=.0001;musicMaster.connect(musicContext.destination);
-  const filter=musicContext.createBiquadFilter();filter.type="lowpass";filter.frequency.value=1500;filter.connect(musicMaster);
-  [110,164.81,220,329.63].forEach((hz,i)=>{const o=musicContext.createOscillator(),g=musicContext.createGain();o.type=i===1?"triangle":"sine";o.frequency.value=hz;g.gain.value=i===0?.12:.045;o.connect(g);g.connect(filter);o.start();});
-  const notes=[440,523.25,659.25,587.33,523.25,392,440,329.63,392,493.88,440,329.63];
-  const play=()=>{if(!musicContext||!musicEnabled)return;const now=musicContext.currentTime,f=notes[melodyStep++%notes.length],o=musicContext.createOscillator(),g=musicContext.createGain(),lp=musicContext.createBiquadFilter();o.type="sine";o.frequency.value=f;lp.type="lowpass";lp.frequency.value=1800;g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(.07,now+.18);g.gain.exponentialRampToValueAtTime(.0001,now+2.1);o.connect(lp);lp.connect(g);g.connect(musicMaster);o.start(now);o.stop(now+2.2);};
-  musicTimer=window.setInterval(play,2350);play();
- }
- musicContext.resume();musicMaster.gain.cancelScheduledValues(musicContext.currentTime);musicMaster.gain.setTargetAtTime(.72,musicContext.currentTime,.9);
+  if(!musicEnabled)return;
+  if(!musicAudio){
+    musicAudio=new Audio(MUSIC_URL);
+    musicAudio.loop=true;
+    musicAudio.preload="auto";
+    musicAudio.volume=.42;
+  }
+  musicAudio.play().catch(()=>{});
 }
-function stopScore(){if(musicContext&&musicMaster)musicMaster.gain.setTargetAtTime(.0001,musicContext.currentTime,.25);}
-function toggleMusic(){musicEnabled=!musicEnabled;$("music").textContent="MUSIC: "+(musicEnabled?"ON":"OFF");if(musicEnabled)startScore();else stopScore();}
+function stopScore(){
+  if(musicAudio){musicAudio.pause();}
+}
+function toggleMusic(){
+  musicEnabled=!musicEnabled;
+  $("music").textContent="MUSIC: "+(musicEnabled?"ON":"OFF");
+  if(musicEnabled)startScore();else stopScore();
+}
+function playSfx(url,volume=.8){
+  if(!sfxEnabled)return;
+  const audio=new Audio(url);
+  audio.preload="auto";
+  audio.volume=volume;
+  audio.play().catch(()=>{});
+  return audio;
+}
+function setMaraMotion(motion){
+  const actions=mara.userData.actions;
+  if(!actions)return;
+  const action=actions[motion]||actions.idle;
+  if(!action||mara.userData.currentMotion===motion)return;
+  const previous=actions[mara.userData.currentMotion];
+  action.reset();
+  action.enabled=true;
+  action.setEffectiveTimeScale(1);
+  action.setEffectiveWeight(1);
+  action.fadeIn(.24).play();
+  if(previous&&previous!==action)previous.fadeOut(.24);
+  mara.userData.currentMotion=motion;
+}
 
 function say(who,words,duration=4){
   $("speaker").textContent=who;$("words").textContent=words;$("caption").style.opacity=1;
@@ -352,10 +423,9 @@ function findTarget(){
 }
 function updateIntro(dt){
   introTime+=dt;keyCamera(introTime);
-  const L=mara.userData.limbs;
-  mara.position.x=-9+Math.sin(introTime*.45)*.25;
-  L.leftArm.rotation.x=Math.sin(introTime*2)*.08;
-  L.rightArm.rotation.x=-Math.sin(introTime*2)*.08;
+  // Calm idle pose: no nervous oscillation or constant foot shuffling.
+  mara.position.x=-9+Math.sin(introTime*.24)*.025;
+  setMaraMotion("idle");
   if(introTime>2.2 && introTime<2.3)think("I told her I would be back before the stars came out.",4.1);
   if(introTime>5.2 && introTime<5.3)say("MARA","I know, little star. One flight. Then I'm yours.",3.5);
   if(introTime>9.3 && introTime<9.4)say("CONTROL","Flight 001, your departure time is not matching the tower clock.",4);
@@ -371,6 +441,7 @@ function updateAnomaly(dt){
 }
 function update(dt){
   gameTime+=dt;thoughtTimer-=dt;if(thoughtTimer<=0)$("thought").style.opacity=0;dialogueTimer-=dt;if(dialogueTimer<=0 && $("caption").style.opacity!=="0")hideCaption();
+  if(mara.userData.mixer)mara.userData.mixer.update(dt);
   if(state==="intro")updateIntro(dt);
   if(state==="explore"){movePlayer(dt);followCamera(dt);findTarget();}
   if(state==="talk"||state==="manifest"){followCamera(dt);findTarget();}
@@ -393,8 +464,8 @@ $("follow").addEventListener("click",()=>finishEnding("signal"));
 $("deliver").addEventListener("click",()=>finishEnding("promise"));
 $("again").addEventListener("click",()=>location.reload());
 $("music").addEventListener("click",toggleMusic);
-$("sound").addEventListener("click",()=>{soundOn=!soundOn;$("sound").textContent="SOUND: "+(soundOn?"ON":"OFF");if(!soundOn&&"speechSynthesis"in window)speechSynthesis.cancel();});
-document.addEventListener("visibilitychange",()=>{if(document.hidden)stopScore();else if(musicEnabled&&state!=="title")startScore();});
+$("sound").addEventListener("click",()=>{soundOn=!soundOn;sfxEnabled=soundOn;$("sound").textContent="SOUND: "+(soundOn?"ON":"OFF");if(!soundOn&&"speechSynthesis"in window)speechSynthesis.cancel();});
+document.addEventListener("visibilitychange",()=>{if(document.hidden)stopScore();else if(musicEnabled&&state!=="title"&&state!=="ending")startScore();});
 for(const [id,dir] of [["up","up"],["down","down"],["left","left"],["right","right"]]){
   const b=$(id);b.addEventListener("pointerdown",e=>{e.preventDefault();touch[dir]=true;b.setPointerCapture(e.pointerId);});
   ["pointerup","pointercancel","lostpointercapture"].forEach(ev=>b.addEventListener(ev,()=>touch[dir]=false));
@@ -423,22 +494,28 @@ function movePlayer(dt){
     mara.position.z=clamp(mara.position.z+dz,-38,52);
     mara.rotation.y=Math.atan2(dx,-dz); player.walk+=dt*(running?15:9);
   }
-  if((keys.Space||keys.KeyJ)&&onGround){jumpVelocity=5.2;onGround=false;}
+  if((keys.Space||keys.KeyJ)&&onGround){
+    jumpVelocity=5.2;onGround=false;
+    const jump=mara.userData.actions?.jump;
+    if(jump){jump.reset();jump.setLoop(THREE.LoopOnce,1);jump.clampWhenFinished=true;jump.fadeIn(.12).play();mara.userData.currentMotion="jump";}
+  }
   jumpVelocity-=15*dt; mara.position.y+=jumpVelocity*dt;
-  if(mara.position.y<=0){mara.position.y=0;jumpVelocity=0;onGround=true;}
-  player.speed=smooth(player.speed,mag,Math.min(1,dt*9));
+  if(mara.position.y<=0){
+    mara.position.y=0;jumpVelocity=0;
+    if(!onGround)setMaraMotion(mag>0?(running?"run":"walk"):"idle");
+    onGround=true;
+  }
+  player.speed=smooth(player.speed,mag,Math.min(1,dt*7));
+  if(onGround)setMaraMotion(mag>.08?(running?"run":"walk"):"idle");
+  // Procedural fallback only, used if the rigged model cannot be fetched.
   const L=mara.userData.limbs;
-  L.leftArm.rotation.x=Math.sin(player.walk)*.52*player.speed;
-  L.rightArm.rotation.x=-Math.sin(player.walk)*.52*player.speed;
-  L.leftForearm.rotation.x=-.12+Math.max(0,Math.sin(player.walk+.5))*.18*player.speed;
-  L.rightForearm.rotation.x=-.12+Math.max(0,Math.sin(player.walk+Math.PI+.5))*.18*player.speed;
-  L.leftLeg.rotation.x=-Math.sin(player.walk)*.68*player.speed;
-  L.rightLeg.rotation.x=Math.sin(player.walk)*.68*player.speed;
-  L.leftShin.rotation.x=Math.max(0,Math.sin(player.walk+Math.PI))*.38*player.speed;
-  L.rightShin.rotation.x=Math.max(0,Math.sin(player.walk))*.38*player.speed;
-  L.torso.rotation.z=smooth(L.torso.rotation.z,-(s)*.08,Math.min(1,dt*7));
-  L.head.rotation.y=smooth(L.head.rotation.y,0,Math.min(1,dt*5));
-  mara.position.y+=Math.abs(Math.sin(player.walk*2))*.035*player.speed*(onGround?1:0);
+  if(L){
+    L.leftArm.rotation.x=Math.sin(player.walk)*.5*player.speed;
+    L.rightArm.rotation.x=-Math.sin(player.walk)*.5*player.speed;
+    L.leftLeg.rotation.x=-Math.sin(player.walk)*.65*player.speed;
+    L.rightLeg.rotation.x=Math.sin(player.walk)*.65*player.speed;
+  }
+  mara.position.y+=Math.abs(Math.sin(player.walk*2))*.025*player.speed*(onGround?1:0);
 }
 function followCamera(dt){
   const distanceBack=10.5, height=3.3+orbitPitch*9;
@@ -449,22 +526,50 @@ function followCamera(dt){
 }
 
 function updateEnding(dt){
-  endingTimer+=dt;timeRing.rotation.z+=dt*.8;
-  timeRing.material.opacity=.35+Math.sin(endingTimer*3)*.3;
-  ghost.position.y=1.8+Math.sin(endingTimer*1.8)*.8;
-  ghost.position.x=5+Math.sin(endingTimer*.65)*1.4;
-  plane.position.y=1.8+Math.sin(endingTimer*2.5)*.25;
-  const target=v3(12+Math.sin(endingTimer*.16)*12,10,-28-endingTimer*.25);
-  camera.position.lerp(target,Math.min(1,dt*.18));camera.lookAt(5,2,-7);
-  if(endingTimer>5.8 && !$("stinger").dataset.shown){
-    $("stinger").dataset.shown="yes";
+  endingTimer+=dt;
+  const t=endingTimer;
+  const darkness=ease((t-.55)/2.1);
+  const darkColor=new THREE.Color(0x020307);
+  scene.background.lerpColors(new THREE.Color(0x9fb6c0),darkColor,darkness);
+  scene.fog.color.copy(scene.background);
+  hemi.intensity=2*(1-darkness);
+  sun.intensity=3.1*(1-darkness);
+  fill.intensity=1.1*(1-darkness);
+  sunDisc.visible=darkness<.48;
+  timeRing.rotation.z+=dt*(1.2+darkness*2.5);
+  timeRing.scale.setScalar(1+Math.max(0,t-1)*.95);
+  timeRing.material.opacity=Math.max(0,.85-darkness*.25);
+  ghost.position.y=1.8+Math.sin(t*4)*.7;
+  ghost.position.x=5+Math.sin(t*1.1)*1.8;
+  plane.position.y=1.8+Math.sin(t*6)*(.12+darkness*.25);
+  plane.rotation.z=Math.sin(t*7)*darkness*.035;
+  const shake=Math.max(0,t-1.1)*darkness;
+  camera.position.x=12+Math.sin(t*34)*shake*.34;
+  camera.position.y=10+Math.sin(t*29)*shake*.22;
+  camera.position.z=-28-t*.25;
+  camera.lookAt(5,2,-7);
+  if(t>.65&&!collapseAudioPlayed){
+    collapseAudioPlayed=true;
+    playSfx(THUNDER_URL,.9);
+    if(musicAudio)musicAudio.volume=.18;
+  }
+  if(t>1.85&&t<2.05)$("collapse-flash").style.opacity=".85";
+  if(t>=2.05)$("collapse-flash").style.opacity="0";
+  if(t>2.12&&!$("collapse-black").dataset.shown){
+    $("collapse-black").dataset.shown="yes";
+    playSfx(IMPACT_URL,.95);
     $("ending").style.opacity=0;
-    setTimeout(()=>{
-      $("ending").style.display="none";
-      $("stinger").style.display="grid";
-      requestAnimationFrame(()=>$("stinger").style.opacity=1);
-      say("UNKNOWN VOICE","Mara... don't come home. I'm already here.",5);
-    },900);
+    $("collapse-black").style.opacity="1";
+    $("collapse-black").style.transition="opacity .42s ease";
+    if(musicAudio)musicAudio.volume=.06;
+  }
+  if(t>2.85&&!$("stinger").dataset.shown){
+    $("stinger").dataset.shown="yes";
+    $("ending").style.display="none";
+    $("stinger").style.display="grid";
+    requestAnimationFrame(()=>$("stinger").style.opacity=1);
+    playSfx(IMPACT_SECOND_URL,.75);
+    say("UNKNOWN VOICE","Mara... don't come home. I'm already here.",5);
   }
 }
 $("title").style.display="grid";
