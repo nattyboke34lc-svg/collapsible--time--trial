@@ -39,7 +39,7 @@ button{font:inherit;cursor:pointer;color:var(--white)}
 #up{grid-column:2}#left{grid-column:1;grid-row:2}#down{grid-column:2;grid-row:2}#right{grid-column:3;grid-row:2}
 #act{align-self:end;margin-left:8px!important;width:76px!important;font-size:10px!important;letter-spacing:.1em;color:var(--gold)!important}
 #skip{position:fixed;z-index:7;right:24px;bottom:24px;border:1px solid #ffffff55;background:#091725aa;color:#fff;padding:10px 14px;font-size:9px;letter-spacing:.18em;display:none}
-#sound{position:fixed;z-index:7;right:24px;top:76px;border:1px solid #ffffff44;background:#091725aa;color:#fff;padding:8px 11px;font-size:9px;letter-spacing:.14em;display:none}
+#stinger{position:fixed;inset:0;z-index:20;display:none;opacity:0;place-content:center;text-align:center;padding:28px;background:radial-gradient(ellipse at center,rgba(13,29,42,.86),rgba(2,7,13,.98));transition:opacity 1.4s}#stinger .eyebrow{color:var(--gold);font-size:10px;letter-spacing:.4em}#stinger h2{font:clamp(38px,8vw,88px)/.98 Georgia,serif;margin:22px 0}#stinger p{font:italic 18px Georgia,serif;color:#c4d0d2;max-width:600px;margin:0 auto 30px}#sound{position:fixed;z-index:7;right:24px;top:76px;border:1px solid #ffffff44;background:#091725aa;color:#fff;padding:8px 11px;font-size:9px;letter-spacing:.14em;display:none}
 @media(max-width:650px){#brand{top:14px;left:15px}#hud{top:14px;right:12px;width:48vw;padding:10px}#objective{font-size:13px}#controls{left:10px;bottom:12px}#controls .stack{grid-template-columns:36px 36px 36px;grid-template-rows:36px 36px}#controls button{width:36px;height:36px}#controls #act{width:64px!important}#caption{bottom:17%}#prompt{bottom:11%;font-size:10px}#skip{right:12px;bottom:12px}}
 </style>
 </head>
@@ -50,7 +50,7 @@ button{font:inherit;cursor:pointer;color:var(--white)}
 <div id="caption"><div id="speaker"></div><div id="words"></div></div>
 <div id="prompt"><b>E</b><span id="promptText">INTERACT</span></div>
 <div id="controls"><div class="stack"><button id="up">▲</button><button id="left">◀</button><button id="down">▼</button><button id="right">▶</button></div><button id="act">INTERACT</button></div>
-<button id="skip">SKIP INTRO</button><button id="sound">SOUND: ON</button>
+<section id="stinger"><div class="eyebrow">COLLAPSIBLE TIME · TRANSMISSION 002</div><h2>YOU WERE<br>NEVER ALONE.</h2><p>The voice came from the aircraft that has not landed yet.</p><button class="primary" onclick="location.reload()">RETURN TO TIMELINE</button></section><button id="skip">SKIP INTRO</button><button id="sound">SOUND: ON</button>
 <section id="title"><div class="eyebrow">A COLLAPSIBLE TIME ORIGINAL</div><h1>THE LAST<br>FLIGHT</h1><p>Some promises outlive the timeline.</p><button class="primary" id="enter">ENTER THE TIMELINE</button><div class="note">A STORY ABOUT THE LIVES WE TOUCH, AND THE MOMENTS WE CANNOT KEEP.</div></section>
 <section id="choice"><div class="eyebrow">THE TIMELINE IS BREAKING</div><h2>WHAT WILL<br>MARA CHOOSE?</h2><p class="sub">Two signals. One flight. Whatever you choose will leave a mark on this world.</p><div class="choiceBtns"><button id="follow"><span>01 · THE UNKNOWN</span>Follow the impossible signal.</button><button id="deliver"><span>02 · THE PROMISE</span>Hold course for the clinic.</button></div></section>
 <section id="ending"><div class="eyebrow">TIMELINE COLLAPSE · CHAPTER 01</div><h2 id="endingTitle">THE WORLD<br>REMEMBERS.</h2><p id="endingText">Your choice has changed this timeline.</p><button class="primary" id="again">RETURN TO THE BEGINNING</button></section>
