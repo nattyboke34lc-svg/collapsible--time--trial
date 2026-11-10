@@ -4,6 +4,10 @@ on:
     branches: [main]
     paths:
       - 'video-bridge/**'
+      - 'index.html'
+      - 'game3d.js'
+      - 'scenario-engine.js'
+      - 'README.md'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 permissions:
