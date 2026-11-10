@@ -6,6 +6,7 @@ on:
       - 'video-bridge/**'
       - 'index.html'
       - 'game3d.js'
+      - 'paper-world.js'
       - 'scenario-engine.js'
       - 'README.md'
       - '.github/workflows/deploy-pages.yml'
