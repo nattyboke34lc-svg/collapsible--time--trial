@@ -1,0 +1,25 @@
+name: Browser prototype checks
+
+on:
+  push:
+    branches:
+      - studio/ct-flight-to-collapse-web
+    paths:
+      - "web/**"
+      - ".github/workflows/web-prototype-check.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Check embedded JavaScript syntax
+        run: |
+          node -e "const fs=require('fs');const html=fs.readFileSync('web/last-flight.html','utf8');const m=html.match(/<script>([\\s\\S]*?)<\\/script>/);if(!m)throw new Error('Inline game script missing');fs.writeFileSync('/tmp/game.js',m[1]);"
+          node --check /tmp/game.js
+      - name: Check key player journey and waitlist wiring
+        run: |
+          node -e "const fs=require('fs');const h=fs.readFileSync('web/last-flight.html','utf8');for(const s of ['BOARD THE AIRCRAFT','START THE ENGINES','CLIMB ▲','UNIDENTIFIED TRANSMISSION','TIMELINE INSTABILITY','UNKNOWN TIMELINE','https://form.jotform.com/263065632659060','navigator.share'])if(!h.includes(s))throw new Error('Missing expected feature: '+s);console.log('All key journey markers found.');"
