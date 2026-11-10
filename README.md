@@ -14,19 +14,19 @@ Open the GitHub Pages preview after the cinematic rebuild is merged and deployed
 - A timeline anomaly with a duplicated aircraft and a visual time fracture.
 
 ## Controls
-- **WASD / Arrow keys:** move
-- **Shift:** run
+- **WASD / Arrow keys:** move with acceleration and momentum
+- **Shift:** sprint
 - **Space / J:** jump
 - **Drag the scene:** orbit the follow camera
 - **E / Enter:** interact
-- **Mobile:** on-screen directional controls and Interact button; drag the scene to orbit the camera
+- **Mobile:** analogue on-screen joystick and Interact button; drag the scene to orbit the camera
 - **Skip Intro:** available during the opening cinematic
 - **Music:** toggles an original, browser-synthesized atmospheric score\n- **Voice:** toggles browser speech narration\n- Mara’s private thoughts appear during key story moments
 
 ## Technology
 - Three.js 0.170 via jsDelivr ES modules
 - HTML, CSS and JavaScript
-- Procedural 3D environment and original primitive-built characters/aircraft
+- Procedural 3D environment and aircraft, with a streamed rigged human base model for Mara
 - No paid assets or game-engine subscription required
 
 ## Visual direction
