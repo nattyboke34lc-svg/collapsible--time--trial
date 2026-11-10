@@ -429,17 +429,6 @@ function followCamera(dt){
   camera.lookAt(mara.position.x,1.65+mara.position.y,mara.position.z);
 }
 
-// A final cinematic sting turns the chapter ending into a cliffhanger.
-function finishEnding(choice){
-  decisionMade=choice;state="ending";endingTimer=0;
-  $("choice").style.opacity=0;setTimeout(()=>$("choice").style.display="none",900);
-  $("endingTitle").innerHTML=choice==="signal"?"THE SIGNAL<br>ANSWERED.":"THE PROMISE<br>KEPT.";
-  $("endingText").textContent=choice==="signal"
-    ?"The transmission answers. But the voice on the other end knows Mara's name."
-    :"The clinic receives its supplies. Then the tower reports a third aircraft on the runway.";
-  $("ending").style.display="grid";requestAnimationFrame(()=>$("ending").style.opacity=1);
-  setObjective("Timeline impact recorded. Something else has crossed over.");
-}
 function updateEnding(dt){
   endingTimer+=dt;timeRing.rotation.z+=dt*.8;
   timeRing.material.opacity=.35+Math.sin(endingTimer*3)*.3;
