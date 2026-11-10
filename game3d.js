@@ -335,7 +335,8 @@ function updateIntro(dt){
   mara.position.x=-9+Math.sin(introTime*.45)*.25;
   L.leftArm.rotation.x=Math.sin(introTime*2)*.08;
   L.rightArm.rotation.x=-Math.sin(introTime*2)*.08;
-  if(introTime>2.2 && introTime<2.3)think("I told her I would be back before the stars came out.",4.1);\n  if(introTime>5.2 && introTime<5.3)say("MARA","I know, little star. One flight. Then I'm yours.",3.5);
+  if(introTime>2.2 && introTime<2.3)think("I told her I would be back before the stars came out.",4.1);
+  if(introTime>5.2 && introTime<5.3)say("MARA","I know, little star. One flight. Then I'm yours.",3.5);
   if(introTime>9.3 && introTime<9.4)say("CONTROL","Flight 001, your departure time is not matching the tower clock.",4);
   if(introTime>13.2 && introTime<13.3){think("Tomorrow? Then why do I remember landing?",3.4);say("MARA","Control... what do you mean, tomorrow?",3.5);}
   if(introTime>17){hideCaption();finishIntro();}
@@ -378,7 +379,9 @@ $("act").addEventListener("click",interact);
 $("follow").addEventListener("click",()=>finishEnding("signal"));
 $("deliver").addEventListener("click",()=>finishEnding("promise"));
 $("again").addEventListener("click",()=>location.reload());
-$("music").addEventListener("click",toggleMusic);\n$("sound").addEventListener("click",()=>{soundOn=!soundOn;$("sound").textContent="SOUND: "+(soundOn?"ON":"OFF");if(!soundOn&&"speechSynthesis"in window)speechSynthesis.cancel();});\ndocument.addEventListener("visibilitychange",()=>{if(document.hidden)stopScore();else if(musicEnabled&&state!=="title")startScore();});
+$("music").addEventListener("click",toggleMusic);
+$("sound").addEventListener("click",()=>{soundOn=!soundOn;$("sound").textContent="SOUND: "+(soundOn?"ON":"OFF");if(!soundOn&&"speechSynthesis"in window)speechSynthesis.cancel();});
+document.addEventListener("visibilitychange",()=>{if(document.hidden)stopScore();else if(musicEnabled&&state!=="title")startScore();});
 for(const [id,dir] of [["up","up"],["down","down"],["left","left"],["right","right"]]){
   const b=$(id);b.addEventListener("pointerdown",e=>{e.preventDefault();touch[dir]=true;b.setPointerCapture(e.pointerId);});
   ["pointerup","pointercancel","lostpointercapture"].forEach(ev=>b.addEventListener(ev,()=>touch[dir]=false));
