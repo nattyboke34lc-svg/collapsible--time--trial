@@ -348,14 +348,6 @@ function updateAnomaly(dt){
   ghost.rotation.y=Math.sin(gameTime*.6)*.025;
   if(state==="anomaly")camera.position.lerp(v3(13,8,9),Math.min(1,dt*.25));
 }
-function updateEnding(dt){
-  endingTimer+=dt;timeRing.rotation.z+=dt*.5;
-  timeRing.material.opacity=.5+Math.sin(endingTimer*2)*.25;
-  ghost.position.y=1.8+Math.sin(endingTimer*1.6)*.6;
-  plane.position.y=1.8+Math.sin(endingTimer*2)*.15;
-  const target=v3(5+Math.sin(endingTimer*.2)*8,8,-25);
-  camera.position.lerp(target,Math.min(1,dt*.12));camera.lookAt(5,2,-7);
-}
 function update(dt){
   gameTime+=dt;thoughtTimer-=dt;if(thoughtTimer<=0)$("thought").style.opacity=0;dialogueTimer-=dt;if(dialogueTimer<=0 && $("caption").style.opacity!=="0")hideCaption();
   if(state==="intro")updateIntro(dt);
