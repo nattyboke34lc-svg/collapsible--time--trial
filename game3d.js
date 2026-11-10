@@ -220,13 +220,31 @@ const sunDisc=new THREE.Mesh(new THREE.SphereGeometry(5,20,12),new THREE.MeshBas
 sunDisc.position.set(-55,43,-110); scene.add(sunDisc);
 
 const player={speed:0,heading:0,walk:0};
-let state="title",introTime=0,gameTime=0,dialogueTimer=0,activeTarget=null,manifestRead=false,metElias=false,decisionMade="",soundOn=true,endingTimer=0;
+let state="title",introTime=0,gameTime=0,dialogueTimer=0,activeTarget=null,manifestRead=false,metElias=false,decisionMade="",soundOn=true,endingTimer=0,thoughtTimer=0;
 const keys={};
 const touch={up:false,down:false,left:false,right:false};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function distance(a,b){return Math.hypot(a.x-b.x,a.z-b.z);}
 function setObjective(s){$("objective").textContent=s;}
 function showHud(show=true){$("hud").style.opacity=show?1:0;$("controls").style.opacity=show?1:0;$("sound").style.display=show?"block":"none";}
+function think(words,duration=4){$("thoughtWords").textContent=words;$("thought").style.opacity=1;thoughtTimer=duration;}
+
+let musicContext=null, musicMaster=null, musicTimer=null, musicEnabled=true, melodyStep=0;
+function startScore(){
+ if(!musicEnabled)return;const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+ if(!musicContext){
+  musicContext=new AC();musicMaster=musicContext.createGain();musicMaster.gain.value=.0001;musicMaster.connect(musicContext.destination);
+  const filter=musicContext.createBiquadFilter();filter.type="lowpass";filter.frequency.value=1500;filter.connect(musicMaster);
+  [110,164.81,220,329.63].forEach((hz,i)=>{const o=musicContext.createOscillator(),g=musicContext.createGain();o.type=i===1?"triangle":"sine";o.frequency.value=hz;g.gain.value=i===0?.12:.045;o.connect(g);g.connect(filter);o.start();});
+  const notes=[440,523.25,659.25,587.33,523.25,392,440,329.63,392,493.88,440,329.63];
+  const play=()=>{if(!musicContext||!musicEnabled)return;const now=musicContext.currentTime,f=notes[melodyStep++%notes.length],o=musicContext.createOscillator(),g=musicContext.createGain(),lp=musicContext.createBiquadFilter();o.type="sine";o.frequency.value=f;lp.type="lowpass";lp.frequency.value=1800;g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(.07,now+.18);g.gain.exponentialRampToValueAtTime(.0001,now+2.1);o.connect(lp);lp.connect(g);g.connect(musicMaster);o.start(now);o.stop(now+2.2);};
+  musicTimer=window.setInterval(play,2350);play();
+ }
+ musicContext.resume();musicMaster.gain.cancelScheduledValues(musicContext.currentTime);musicMaster.gain.setTargetAtTime(.72,musicContext.currentTime,.9);
+}
+function stopScore(){if(musicContext&&musicMaster)musicMaster.gain.setTargetAtTime(.0001,musicContext.currentTime,.25);}
+function toggleMusic(){musicEnabled=!musicEnabled;$("music").textContent="MUSIC: "+(musicEnabled?"ON":"OFF");if(musicEnabled)startScore();else stopScore();}
+
 function say(who,words,duration=4){
   $("speaker").textContent=who;$("words").textContent=words;$("caption").style.opacity=1;
   dialogueTimer=duration;
@@ -292,7 +310,7 @@ function interact(){
     setObjective("Board the aircraft. Something is waiting in the cockpit.");
     setTimeout(()=>{if(state==="manifest")state="explore";},5100);
   } else if(activeTarget==="cockpit" && manifestRead){
-    state="anomaly";hideCaption();say("CONTROL","Mara, do not take off. We have another you on the runway.",5);
+    state="anomaly";hideCaption();think("That voice sounded exactly like me. But I have never said those words.",4.5);say("CONTROL","Mara, do not take off. We have another you on the runway.",5);
     setObjective("The timeline is splitting...");
     plane.rotation.y=.025;ghost.visible=true;timeRing.material.opacity=.85;
     setTimeout(()=>say("MARA","Then who just answered my radio?",4),3900);
@@ -344,9 +362,9 @@ function updateIntro(dt){
   mara.position.x=-9+Math.sin(introTime*.45)*.25;
   L.leftArm.rotation.x=Math.sin(introTime*2)*.08;
   L.rightArm.rotation.x=-Math.sin(introTime*2)*.08;
-  if(introTime>5.2 && introTime<5.3)say("MARA","I know, little star. One flight. Then I'm yours.",3.5);
+  if(introTime>2.2 && introTime<2.3)think("I told her I would be back before the stars came out.",4.1);\n  if(introTime>5.2 && introTime<5.3)say("MARA","I know, little star. One flight. Then I'm yours.",3.5);
   if(introTime>9.3 && introTime<9.4)say("CONTROL","Flight 001, your departure time is not matching the tower clock.",4);
-  if(introTime>13.2 && introTime<13.3)say("MARA","Control... what do you mean, tomorrow?",3.5);
+  if(introTime>13.2 && introTime<13.3){think("Tomorrow? Then why do I remember landing?",3.4);say("MARA","Control... what do you mean, tomorrow?",3.5);}
   if(introTime>17){hideCaption();finishIntro();}
 }
 function updateAnomaly(dt){
@@ -387,7 +405,7 @@ $("act").addEventListener("click",interact);
 $("follow").addEventListener("click",()=>finishEnding("signal"));
 $("deliver").addEventListener("click",()=>finishEnding("promise"));
 $("again").addEventListener("click",()=>location.reload());
-$("sound").addEventListener("click",()=>{soundOn=!soundOn;$("sound").textContent="SOUND: "+(soundOn?"ON":"OFF");if(!soundOn&&"speechSynthesis"in window)speechSynthesis.cancel();});
+$("music").addEventListener("click",toggleMusic);\n$("sound").addEventListener("click",()=>{soundOn=!soundOn;$("sound").textContent="SOUND: "+(soundOn?"ON":"OFF");if(!soundOn&&"speechSynthesis"in window)speechSynthesis.cancel();});\ndocument.addEventListener("visibilitychange",()=>{if(document.hidden)stopScore();else if(musicEnabled&&state!=="title")startScore();});
 for(const [id,dir] of [["up","up"],["down","down"],["left","left"],["right","right"]]){
   const b=$(id);b.addEventListener("pointerdown",e=>{e.preventDefault();touch[dir]=true;b.setPointerCapture(e.pointerId);});
   ["pointerup","pointercancel","lostpointercapture"].forEach(ev=>b.addEventListener(ev,()=>touch[dir]=false));
