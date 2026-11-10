@@ -127,30 +127,51 @@ function buildPlane() {
   return g;
 }
 function makePerson({coat=M.jacket, trousers=M.pants, hair=M.hair, female=false}={}) {
+  // Character forward is local -Z. Keep the face, gaze and body axes consistent.
   const root=new THREE.Group();
-  const torso=box(root,"torso",[.78,1.05,.43],[0,1.58,0],coat);
-  box(root,"shirt",[.3,.55,.46],[0,1.68,-.015],M.cream,false,false);
-  const hips=box(root,"hips",[.7,.32,.4],[0,1.02,0],trousers);
-  const head=sphere(root,.34,[0,2.38,0],M.skin,[.84,1.08,.86]);
-  sphere(root,.35,[0,2.58,.04],hair,[1,.63,1]);
-  // hair framing the face
-  sphere(root,.19,[-.25,2.36,.05],hair,[.5,1.3,.7]);
-  sphere(root,.19,[.25,2.36,.05],hair,[.5,1.3,.7]);
-  const eyeMat=mat(0x25252a,.4);
-  sphere(root,.035,[-.105,2.4,.29],eyeMat,[1,1,.5]);
-  sphere(root,.035,[.105,2.4,.29],eyeMat,[1,1,.5]);
+  const body=new THREE.Group(); body.position.y=0; root.add(body);
+  const torso= new THREE.Group(); torso.position.set(0,1.48,0); body.add(torso);
+  const suit= new THREE.Mesh(new THREE.CapsuleGeometry(.36,.72,6,12),coat);
+  suit.scale.set(1,.92,.62); suit.position.y=.04; suit.castShadow=true; torso.add(suit);
+  box(torso,"flight suit chest panel",[.34,.5,.035],[0,.1,-.225],M.jacketLight,false,false);
+  box(torso,"flight suit belt",[.68,.09,.39],[0,-.48,0],M.gold,false,false);
+  // Soft shoulder silhouette and articulated arms.
   const limbs={};
-  for(const side of [-1,1]) {
-    const arm=new THREE.Group(); arm.position.set(side*.48,1.92,0); root.add(arm);
-    const sleeve=cylinder(arm,.13,.16,.78,[0,-.38,0],coat,12);
-    sphere(arm,.13,[0,-.82,.01],M.skin,[.8,1,.8]);
+  for(const side of [-1,1]){
+    const arm=new THREE.Group(); arm.position.set(side*.39,.34,0); torso.add(arm);
+    cylinder(arm,.145,.12,.48,[0,-.24,0],coat,14);
+    const elbow=new THREE.Group(); elbow.position.set(0,-.47,0); arm.add(elbow);
+    cylinder(elbow,.105,.09,.43,[0,-.21,0],coat,14);
+    sphere(elbow,.105,[0,-.45,-.015],M.skin,[.82,1,.75]);
     limbs[side<0?"leftArm":"rightArm"]=arm;
-    const leg=new THREE.Group(); leg.position.set(side*.22,.91,0); root.add(leg);
-    cylinder(leg,.17,.14,.82,[0,-.42,0],trousers,12);
-    box(leg,"boot",[.34,.17,.5],[0,-.84,-.08],M.rubber);
+    limbs[side<0?"leftForearm":"rightForearm"]=elbow;
+    const leg=new THREE.Group(); leg.position.set(side*.2,.99,0); body.add(leg);
+    cylinder(leg,.17,.135,.62,[0,-.31,0],trousers,14);
+    const knee=new THREE.Group(); knee.position.set(0,-.62,0); leg.add(knee);
+    cylinder(knee,.125,.11,.52,[0,-.25,0],trousers,14);
+    box(knee,"aviator boot",[.31,.16,.48],[0,-.54,-.09],M.rubber);
     limbs[side<0?"leftLeg":"rightLeg"]=leg;
+    limbs[side<0?"leftShin":"rightShin"]=knee;
   }
-  box(root,"belt",[.73,.12,.43],[0,1.06,0],M.gold,false,false);
+  const neck=cylinder(body,.12,.13,.2,[0,2.02,0],M.skin,14);
+  const headRig=new THREE.Group(); headRig.position.set(0,2.28,0); body.add(headRig);
+  sphere(headRig,.31,[0,0,0],M.skin,[.86,1.12,.82]);
+  // Shoulder-length hair, with a soft crown and face-framing locks.
+  sphere(headRig,.335,[0,.16,.055],hair,[1.02,.78,.95]);
+  sphere(headRig,.31,[0,-.12,.12],hair,[1.08,.9,.72]);
+  for(const side of [-1,1]){
+    const lock=sphere(headRig,.115,[side*.255,-.12,-.015],hair,[.72,1.6,.82]);
+    lock.rotation.z=side*-.12;
+  }
+  // Facial features face toward local -Z, the same direction as the character.
+  const eyeMat=mat(0x30272a,.35);
+  for(const side of [-1,1]){
+    sphere(headRig,.027,[side*.105,.025,-.265],eyeMat,[1,1,.55]);
+    sphere(headRig,.012,[side*.105,.03,-.284],M.cream,[1,1,.4]);
+  }
+  sphere(headRig,.035,[0,-.045,-.285],M.skin,[.7,.9,.7]);
+  const mouth=box(headRig,"subtle smile",[.075,.012,.012],[0,-.13,-.267],mat(0x704b48),false,false);
+  limbs.head=headRig; limbs.torso=torso; limbs.body=body;
   root.userData.limbs=limbs;
   return root;
 }
@@ -407,10 +428,16 @@ function movePlayer(dt){
   if(mara.position.y<=0){mara.position.y=0;jumpVelocity=0;onGround=true;}
   player.speed=smooth(player.speed,mag,Math.min(1,dt*9));
   const L=mara.userData.limbs;
-  L.leftArm.rotation.x=Math.sin(player.walk)*.62*player.speed;
-  L.rightArm.rotation.x=-Math.sin(player.walk)*.62*player.speed;
-  L.leftLeg.rotation.x=-Math.sin(player.walk)*.72*player.speed;
-  L.rightLeg.rotation.x=Math.sin(player.walk)*.72*player.speed;
+  L.leftArm.rotation.x=Math.sin(player.walk)*.52*player.speed;
+  L.rightArm.rotation.x=-Math.sin(player.walk)*.52*player.speed;
+  L.leftForearm.rotation.x=-.12+Math.max(0,Math.sin(player.walk+.5))*.18*player.speed;
+  L.rightForearm.rotation.x=-.12+Math.max(0,Math.sin(player.walk+Math.PI+.5))*.18*player.speed;
+  L.leftLeg.rotation.x=-Math.sin(player.walk)*.68*player.speed;
+  L.rightLeg.rotation.x=Math.sin(player.walk)*.68*player.speed;
+  L.leftShin.rotation.x=Math.max(0,Math.sin(player.walk+Math.PI))*.38*player.speed;
+  L.rightShin.rotation.x=Math.max(0,Math.sin(player.walk))*.38*player.speed;
+  L.torso.rotation.z=smooth(L.torso.rotation.z,-(s)*.08,Math.min(1,dt*7));
+  L.head.rotation.y=smooth(L.head.rotation.y,0,Math.min(1,dt*5));
   mara.position.y+=Math.abs(Math.sin(player.walk*2))*.035*player.speed*(onGround?1:0);
 }
 function followCamera(dt){
