@@ -226,7 +226,7 @@ const touch={up:false,down:false,left:false,right:false};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function distance(a,b){return Math.hypot(a.x-b.x,a.z-b.z);}
 function setObjective(s){$("objective").textContent=s;}
-function showHud(show=true){$("hud").style.opacity=show?1:0;$("controls").style.opacity=show?1:0;$("sound").style.display=show?"block":"none";}
+function showHud(show=true){$("hud").style.opacity=show?1:0;$("controls").style.opacity=show?1:0;$("sound").style.display=show?"block":"none";$("music").style.display=show?"block":"none";}
 function think(words,duration=4){$("thoughtWords").textContent=words;$("thought").style.opacity=1;thoughtTimer=duration;}
 
 let musicContext=null, musicMaster=null, musicTimer=null, musicEnabled=true, melodyStep=0;
