@@ -16,8 +16,10 @@ Open the GitHub Pages preview after the cinematic rebuild is merged and deployed
 ## Controls
 - **WASD / Arrow keys:** move
 - **Shift:** run
+- **Space / J:** jump
+- **Drag the scene:** orbit the follow camera
 - **E / Enter:** interact
-- **Mobile:** on-screen directional controls and Interact button
+- **Mobile:** on-screen directional controls and Interact button; drag the scene to orbit the camera
 - **Skip Intro:** available during the opening cinematic
 - **Sound:** toggles browser speech narration
 
