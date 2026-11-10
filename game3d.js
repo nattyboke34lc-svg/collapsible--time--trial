@@ -39,7 +39,13 @@ const fill = new THREE.DirectionalLight(0xa5c7dc,1.1); fill.position.set(25,18,-
 function box(parent, name, size, position, material, cast=true, receive=true) {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
   mesh.name=name; mesh.position.set(...position); mesh.castShadow=cast; mesh.receiveShadow=receive;
-  parent.add(mesh); return mesh;
+  parent.add(mesh);
+  // Fine cut-edge ink makes small structures read as folded card models.
+  if(Math.max(...size)<40 && Math.min(...size)>.06 && !/runway|apron|floor|dash/i.test(name)){
+    const edge=new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry),new THREE.LineBasicMaterial({color:0x806e59,transparent:true,opacity:.28}));
+    edge.renderOrder=2;mesh.add(edge);
+  }
+  return mesh;
 }
 function cylinder(parent, radiusTop, radiusBottom, height, position, material, radial=16, rotation=null) {
   const mesh=new THREE.Mesh(new THREE.CylinderGeometry(radiusTop,radiusBottom,height,radial),material);
@@ -47,7 +53,7 @@ function cylinder(parent, radiusTop, radiusBottom, height, position, material, r
   mesh.castShadow=true; mesh.receiveShadow=true; parent.add(mesh); return mesh;
 }
 function sphere(parent, radius, position, material, scale=[1,1,1]) {
-  const mesh=new THREE.Mesh(new THREE.SphereGeometry(radius,20,14),material);
+  const mesh=new THREE.Mesh(new THREE.IcosahedronGeometry(radius,2),material);
   mesh.position.set(...position); mesh.scale.set(...scale); mesh.castShadow=true; mesh.receiveShadow=true; parent.add(mesh); return mesh;
 }
 function ground() {
