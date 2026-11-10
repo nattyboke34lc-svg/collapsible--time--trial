@@ -284,7 +284,7 @@ sunDisc.position.set(-55,43,-110); scene.add(sunDisc);
 const player={speed:0,heading:0,walk:0,vx:0,vz:0};
 let state="title",introTime=0,gameTime=0,dialogueTimer=0,activeTarget=null,manifestRead=false,metElias=false,decisionMade="",soundOn=true,endingTimer=0,thoughtTimer=0;
 const keys={};
-const touch={up:false,down:false,left:false,right:false};
+const touch={x:0,y:0};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function distance(a,b){return Math.hypot(a.x-b.x,a.z-b.z);}
 function setObjective(s){$("objective").textContent=s;}
@@ -476,10 +476,26 @@ $("again").addEventListener("click",()=>location.reload());
 $("music").addEventListener("click",toggleMusic);
 $("sound").addEventListener("click",()=>{soundOn=!soundOn;sfxEnabled=soundOn;$("sound").textContent="SOUND: "+(soundOn?"ON":"OFF");if(!soundOn&&"speechSynthesis"in window)speechSynthesis.cancel();});
 document.addEventListener("visibilitychange",()=>{if(document.hidden)stopScore();else if(musicEnabled&&state!=="title"&&state!=="ending")startScore();});
-for(const [id,dir] of [["up","up"],["down","down"],["left","left"],["right","right"]]){
-  const b=$(id);b.addEventListener("pointerdown",e=>{e.preventDefault();touch[dir]=true;b.setPointerCapture(e.pointerId);});
-  ["pointerup","pointercancel","lostpointercapture"].forEach(ev=>b.addEventListener(ev,()=>touch[dir]=false));
+// Analogue on-screen joystick for touch and mouse users.
+const stickBase=$("stickBase"),stickKnob=$("stickKnob");
+let stickPointer=null;
+function updateStick(e){
+  const rect=stickBase.getBoundingClientRect();
+  const cx=rect.left+rect.width/2,cy=rect.top+rect.height/2;
+  let x=(e.clientX-cx)/(rect.width*.39),y=(e.clientY-cy)/(rect.height*.39);
+  const length=Math.hypot(x,y);
+  if(length>1){x/=length;y/=length;}
+  touch.x=x;touch.y=y;
+  stickKnob.style.transform="translate("+Math.round(x*29)+"px,"+Math.round(y*29)+"px)";
 }
+function resetStick(){
+  stickPointer=null;touch.x=0;touch.y=0;stickKnob.style.transform="translate(0,0)";
+}
+stickBase.addEventListener("pointerdown",e=>{
+  e.preventDefault();stickPointer=e.pointerId;stickBase.setPointerCapture(e.pointerId);updateStick(e);
+});
+stickBase.addEventListener("pointermove",e=>{if(e.pointerId===stickPointer){e.preventDefault();updateStick(e);}});
+["pointerup","pointercancel","lostpointercapture"].forEach(ev=>stickBase.addEventListener(ev,resetStick));
 
 // Camera orbit and expanded movement. Mouse/touch drag rotates the follow camera.
 let orbitYaw=0, orbitPitch=.12, dragging=false, lastPointerX=0, lastPointerY=0, jumpVelocity=0, onGround=true;
@@ -494,8 +510,8 @@ renderer.domElement.addEventListener("pointermove",e=>{
 });
 ["pointerup","pointercancel","lostpointercapture"].forEach(ev=>renderer.domElement.addEventListener(ev,()=>dragging=false));
 function movePlayer(dt){
-  let f=(keys.KeyW||keys.ArrowUp||touch.up?1:0)-(keys.KeyS||keys.ArrowDown||touch.down?1:0);
-  let s=(keys.KeyD||keys.ArrowRight||touch.right?1:0)-(keys.KeyA||keys.ArrowLeft||touch.left?1:0);
+  let f=clamp((keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)-touch.y,-1,1);
+  let s=clamp((keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+touch.x,-1,1);
   const mag=Math.hypot(f,s); if(mag>0){f/=mag;s/=mag;}
   const running=(keys.ShiftLeft||keys.ShiftRight)&&mag>0;
   const speed=running?11.8:6.4;
