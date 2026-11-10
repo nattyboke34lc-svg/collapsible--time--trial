@@ -157,6 +157,50 @@ function makePerson({coat=M.jacket, trousers=M.pants, hair=M.hair, female=false}
 const hangar=buildHangar();
 const plane=buildPlane(); plane.rotation.y=Math.PI;
 ground();
+
+// Scenic pass: layered mountain horizon, perimeter lights, service roads and airfield detail.
+{
+  const ridgeMat=mat(0x667d80), ridgeFar=mat(0x9aada8), treeMat=mat(0x405b50), trunkMat=mat(0x62594a);
+  for(let i=0;i<26;i++){
+    const x=-155+i*12.4, z=-115-(i%3)*17, height=18+(i%7)*4;
+    const peak=new THREE.Mesh(new THREE.ConeGeometry(17+(i%4)*3,height,5),i%2?ridgeMat:ridgeFar);
+    peak.position.set(x,height*.45,z); peak.rotation.y=(i%5)*.31; peak.scale.z=.58; peak.castShadow=false; scene.add(peak);
+    const snow=new THREE.Mesh(new THREE.ConeGeometry(5,height*.24,5),mat(0xc5cfca));
+    snow.position.set(x,height*.84,z+.1); snow.castShadow=false; scene.add(snow);
+  }
+  // Distant tree line gives the horizon scale and depth.
+  for(let i=0;i<76;i++){
+    const x=-145+i*3.9, z=-32-(i%5)*5, h=3.5+(i%6)*.65;
+    cylinder(scene,.13,.2,h*.38,[x,h*.19,z],trunkMat,7);
+    const crown=new THREE.Mesh(new THREE.ConeGeometry(1.4+(i%3)*.25,h,7),treeMat);
+    crown.position.set(x,h*.62,z); crown.castShadow=false; scene.add(crown);
+  }
+  // Apron markings, taxiway edge lights and small service equipment.
+  for(let z=-8;z<125;z+=18){
+    box(scene,"taxiway guide",[.16,.025,7],[19,-.12,z],M.gold,false,false);
+    for(const x of [-21,21]){
+      const lamp=new THREE.PointLight(0x9ec8d8,1.8,9,2); lamp.position.set(x,.55,z); scene.add(lamp);
+      sphere(scene,.09,[x,.18,z],new THREE.MeshBasicMaterial({color:0xb8e5ed}),[1,1,1]);
+    }
+  }
+  for(let i=0;i<7;i++){
+    const x=31+(i%3)*5, z=-17-Math.floor(i/3)*13;
+    box(scene,"service cart",[2.8,1.15,1.5],[x,.58,z],i%2?M.white:M.green);
+    box(scene,"cart windshield",[1.7,.55,.06],[x,.95,z-.77],M.glass,false,false);
+    for(const wx of [-.85,.85]) cylinder(scene,.35,.35,.18,[x+wx,.32,z],M.rubber,12,[0,0,Math.PI/2]);
+  }
+  // Clouds are broad, soft silhouettes rather than floating decorative dots.
+  const cloudMat=new THREE.MeshBasicMaterial({color:0xe2e5df,transparent:true,opacity:.52,depthWrite:false});
+  for(let i=0;i<13;i++){
+    const cloud=new THREE.Group();
+    for(let j=0;j<5;j++){
+      const puff=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),cloudMat);
+      puff.position.set(j*2.1,Math.sin(j*1.7)*.45,0); puff.scale.set(2.8,1.05,1.5); cloud.add(puff);
+    }
+    cloud.position.set(-90+i*19,30+(i%4)*5,-95-(i%3)*18); cloud.scale.setScalar(1+(i%3)*.25); scene.add(cloud);
+  }
+}
+
 const mara=makePerson({coat:M.jacket,trousers:M.pants,hair:M.hair,female:true});
 mara.position.set(-9,0,10); scene.add(mara);
 const elias=makePerson({coat:M.red,trousers:mat(0x343d43),hair:mat(0x393331)});
@@ -176,13 +220,31 @@ const sunDisc=new THREE.Mesh(new THREE.SphereGeometry(5,20,12),new THREE.MeshBas
 sunDisc.position.set(-55,43,-110); scene.add(sunDisc);
 
 const player={speed:0,heading:0,walk:0};
-let state="title",introTime=0,gameTime=0,dialogueTimer=0,activeTarget=null,manifestRead=false,metElias=false,decisionMade="",soundOn=true,endingTimer=0;
+let state="title",introTime=0,gameTime=0,dialogueTimer=0,activeTarget=null,manifestRead=false,metElias=false,decisionMade="",soundOn=true,endingTimer=0,thoughtTimer=0;
 const keys={};
 const touch={up:false,down:false,left:false,right:false};
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function distance(a,b){return Math.hypot(a.x-b.x,a.z-b.z);}
 function setObjective(s){$("objective").textContent=s;}
-function showHud(show=true){$("hud").style.opacity=show?1:0;$("controls").style.opacity=show?1:0;$("sound").style.display=show?"block":"none";}
+function showHud(show=true){$("hud").style.opacity=show?1:0;$("controls").style.opacity=show?1:0;$("sound").style.display=show?"block":"none";$("music").style.display=show?"block":"none";}
+function think(words,duration=4){$("thoughtWords").textContent=words;$("thought").style.opacity=1;thoughtTimer=duration;}
+
+let musicContext=null, musicMaster=null, musicTimer=null, musicEnabled=true, melodyStep=0;
+function startScore(){
+ if(!musicEnabled)return;const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
+ if(!musicContext){
+  musicContext=new AC();musicMaster=musicContext.createGain();musicMaster.gain.value=.0001;musicMaster.connect(musicContext.destination);
+  const filter=musicContext.createBiquadFilter();filter.type="lowpass";filter.frequency.value=1500;filter.connect(musicMaster);
+  [110,164.81,220,329.63].forEach((hz,i)=>{const o=musicContext.createOscillator(),g=musicContext.createGain();o.type=i===1?"triangle":"sine";o.frequency.value=hz;g.gain.value=i===0?.12:.045;o.connect(g);g.connect(filter);o.start();});
+  const notes=[440,523.25,659.25,587.33,523.25,392,440,329.63,392,493.88,440,329.63];
+  const play=()=>{if(!musicContext||!musicEnabled)return;const now=musicContext.currentTime,f=notes[melodyStep++%notes.length],o=musicContext.createOscillator(),g=musicContext.createGain(),lp=musicContext.createBiquadFilter();o.type="sine";o.frequency.value=f;lp.type="lowpass";lp.frequency.value=1800;g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(.07,now+.18);g.gain.exponentialRampToValueAtTime(.0001,now+2.1);o.connect(lp);lp.connect(g);g.connect(musicMaster);o.start(now);o.stop(now+2.2);};
+  musicTimer=window.setInterval(play,2350);play();
+ }
+ musicContext.resume();musicMaster.gain.cancelScheduledValues(musicContext.currentTime);musicMaster.gain.setTargetAtTime(.72,musicContext.currentTime,.9);
+}
+function stopScore(){if(musicContext&&musicMaster)musicMaster.gain.setTargetAtTime(.0001,musicContext.currentTime,.25);}
+function toggleMusic(){musicEnabled=!musicEnabled;$("music").textContent="MUSIC: "+(musicEnabled?"ON":"OFF");if(musicEnabled)startScore();else stopScore();}
+
 function say(who,words,duration=4){
   $("speaker").textContent=who;$("words").textContent=words;$("caption").style.opacity=1;
   dialogueTimer=duration;
@@ -209,6 +271,7 @@ function keyCamera(t){
   camera.lookAt(new THREE.Vector3().lerpVectors(a.look,b.look,u));
 }
 function beginGame(){
+  startScore();
   $("title").style.opacity=0;setTimeout(()=>$("title").style.display="none",1050);
   $("skip").style.display="block";state="intro";introTime=0;showHud(false);
   say("CHILD","Mum? You promised you'd come home.",3.5);
@@ -238,17 +301,17 @@ function finishEnding(choice){
 function interact(){
   if(state!=="explore")return;
   if(activeTarget==="elias"){
-    metElias=true;state="talk";
+    metElias=true;state="talk";think("Two aircraft. One flight plan. Why does the second one have my name?",4.5);
     say("ELIAS","Mara. Your flight has appeared twice on the radar. Same aircraft. Same call sign. Two different times.",6);
     setObjective("The manifest is beside the cargo crate. Find out what changed.");
     setTimeout(()=>{if(state==="talk")state="explore";},6100);
   } else if(activeTarget==="manifest" && metElias && !manifestRead){
-    manifestRead=true;manifest.material=M.gold;state="manifest";
+    manifestRead=true;manifest.material=M.gold;state="manifest";think("I did not write tomorrow. So who did?",4.2);
     say("MARA","This flight log is dated tomorrow. But the departure stamp is mine.",5);
     setObjective("Board the aircraft. Something is waiting in the cockpit.");
     setTimeout(()=>{if(state==="manifest")state="explore";},5100);
   } else if(activeTarget==="cockpit" && manifestRead){
-    state="anomaly";hideCaption();say("CONTROL","Mara, do not take off. We have another you on the runway.",5);
+    state="anomaly";hideCaption();think("That voice sounded exactly like me. But I have never said those words.",4.5);say("CONTROL","Mara, do not take off. We have another you on the runway.",5);
     setObjective("The timeline is splitting...");
     plane.rotation.y=.025;ghost.visible=true;timeRing.material.opacity=.85;
     setTimeout(()=>say("MARA","Then who just answered my radio?",4),3900);
@@ -266,43 +329,16 @@ function findTarget(){
   for(const t of targets){if(!t.enabled)continue;const d=distance(p,t.obj.position);if(d<best){best=d;activeTarget=t.id;$("promptText").textContent=t.label;}}
   $("prompt").style.opacity=activeTarget?"1":"0";
 }
-function movePlayer(dt){
-  let f=(keys.KeyW||keys.ArrowUp||touch.up?1:0)-(keys.KeyS||keys.ArrowDown||touch.down?1:0);
-  let s=(keys.KeyD||keys.ArrowRight||touch.right?1:0)-(keys.KeyA||keys.ArrowLeft||touch.left?1:0);
-  const mag=Math.hypot(f,s);
-  if(mag>0){f/=mag;s/=mag;}
-  const running=keys.ShiftLeft||keys.ShiftRight;
-  const speed=running?8.4:5.2;
-  const dx=s*speed*dt, dz=-f*speed*dt;
-  if(mag>0){
-    mara.position.x=clamp(mara.position.x+dx,-26,26);
-    mara.position.z=clamp(mara.position.z+dz,-28,42);
-    mara.rotation.y=Math.atan2(dx,-dz);
-    player.walk+=dt*(running?13:8);
-  }
-  player.speed=smooth(player.speed,mag,Math.min(1,dt*9));
-  const L=mara.userData.limbs;
-  L.leftArm.rotation.x=Math.sin(player.walk)*.55*player.speed;
-  L.rightArm.rotation.x=-Math.sin(player.walk)*.55*player.speed;
-  L.leftLeg.rotation.x=-Math.sin(player.walk)*.62*player.speed;
-  L.rightLeg.rotation.x=Math.sin(player.walk)*.62*player.speed;
-  mara.position.y=Math.abs(Math.sin(player.walk*2))*.055*player.speed;
-}
-function followCamera(dt){
-  const target=v3(mara.position.x,2.4,mara.position.z+8.8);
-  camera.position.lerp(target,1-Math.pow(.001,dt));
-  const look=v3(mara.position.x,1.55,mara.position.z-1.5);
-  camera.lookAt(look);
-}
 function updateIntro(dt){
   introTime+=dt;keyCamera(introTime);
   const L=mara.userData.limbs;
   mara.position.x=-9+Math.sin(introTime*.45)*.25;
   L.leftArm.rotation.x=Math.sin(introTime*2)*.08;
   L.rightArm.rotation.x=-Math.sin(introTime*2)*.08;
+  if(introTime>2.2 && introTime<2.3)think("I told her I would be back before the stars came out.",4.1);
   if(introTime>5.2 && introTime<5.3)say("MARA","I know, little star. One flight. Then I'm yours.",3.5);
   if(introTime>9.3 && introTime<9.4)say("CONTROL","Flight 001, your departure time is not matching the tower clock.",4);
-  if(introTime>13.2 && introTime<13.3)say("MARA","Control... what do you mean, tomorrow?",3.5);
+  if(introTime>13.2 && introTime<13.3){think("Tomorrow? Then why do I remember landing?",3.4);say("MARA","Control... what do you mean, tomorrow?",3.5);}
   if(introTime>17){hideCaption();finishIntro();}
 }
 function updateAnomaly(dt){
@@ -321,7 +357,7 @@ function updateEnding(dt){
   camera.position.lerp(target,Math.min(1,dt*.12));camera.lookAt(5,2,-7);
 }
 function update(dt){
-  gameTime+=dt;dialogueTimer-=dt;if(dialogueTimer<=0 && $("caption").style.opacity!=="0")hideCaption();
+  gameTime+=dt;thoughtTimer-=dt;if(thoughtTimer<=0)$("thought").style.opacity=0;dialogueTimer-=dt;if(dialogueTimer<=0 && $("caption").style.opacity!=="0")hideCaption();
   if(state==="intro")updateIntro(dt);
   if(state==="explore"){movePlayer(dt);followCamera(dt);findTarget();}
   if(state==="talk"||state==="manifest"){followCamera(dt);findTarget();}
@@ -343,10 +379,75 @@ $("act").addEventListener("click",interact);
 $("follow").addEventListener("click",()=>finishEnding("signal"));
 $("deliver").addEventListener("click",()=>finishEnding("promise"));
 $("again").addEventListener("click",()=>location.reload());
+$("music").addEventListener("click",toggleMusic);
 $("sound").addEventListener("click",()=>{soundOn=!soundOn;$("sound").textContent="SOUND: "+(soundOn?"ON":"OFF");if(!soundOn&&"speechSynthesis"in window)speechSynthesis.cancel();});
+document.addEventListener("visibilitychange",()=>{if(document.hidden)stopScore();else if(musicEnabled&&state!=="title")startScore();});
 for(const [id,dir] of [["up","up"],["down","down"],["left","left"],["right","right"]]){
   const b=$(id);b.addEventListener("pointerdown",e=>{e.preventDefault();touch[dir]=true;b.setPointerCapture(e.pointerId);});
   ["pointerup","pointercancel","lostpointercapture"].forEach(ev=>b.addEventListener(ev,()=>touch[dir]=false));
 }
+
+// Camera orbit and expanded movement. Mouse/touch drag rotates the follow camera.
+let orbitYaw=0, orbitPitch=.12, dragging=false, lastPointerX=0, lastPointerY=0, jumpVelocity=0, onGround=true;
+renderer.domElement.style.cursor="grab";
+renderer.domElement.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse"&&e.button!==0)return;dragging=true;lastPointerX=e.clientX;lastPointerY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId);});
+renderer.domElement.addEventListener("pointermove",e=>{
+  if(!dragging)return;
+  const dx=e.clientX-lastPointerX, dy=e.clientY-lastPointerY; lastPointerX=e.clientX;lastPointerY=e.clientY;
+  orbitYaw-=dx*.004; orbitPitch=clamp(orbitPitch+dy*.003,-.12,.48);
+});
+["pointerup","pointercancel","lostpointercapture"].forEach(ev=>renderer.domElement.addEventListener(ev,()=>dragging=false));
+function movePlayer(dt){
+  let f=(keys.KeyW||keys.ArrowUp||touch.up?1:0)-(keys.KeyS||keys.ArrowDown||touch.down?1:0);
+  let s=(keys.KeyD||keys.ArrowRight||touch.right?1:0)-(keys.KeyA||keys.ArrowLeft||touch.left?1:0);
+  const mag=Math.hypot(f,s); if(mag>0){f/=mag;s/=mag;}
+  const running=keys.ShiftLeft||keys.ShiftRight;
+  const speed=running?10.5:6.1;
+  const sin=Math.sin(orbitYaw), cos=Math.cos(orbitYaw);
+  const dx=(s*cos+f*sin)*speed*dt, dz=(s*sin-f*cos)*speed*dt;
+  if(mag>0){
+    mara.position.x=clamp(mara.position.x+dx,-35,35);
+    mara.position.z=clamp(mara.position.z+dz,-38,52);
+    mara.rotation.y=Math.atan2(dx,-dz); player.walk+=dt*(running?15:9);
+  }
+  if((keys.Space||keys.KeyJ)&&onGround){jumpVelocity=5.2;onGround=false;}
+  jumpVelocity-=15*dt; mara.position.y+=jumpVelocity*dt;
+  if(mara.position.y<=0){mara.position.y=0;jumpVelocity=0;onGround=true;}
+  player.speed=smooth(player.speed,mag,Math.min(1,dt*9));
+  const L=mara.userData.limbs;
+  L.leftArm.rotation.x=Math.sin(player.walk)*.62*player.speed;
+  L.rightArm.rotation.x=-Math.sin(player.walk)*.62*player.speed;
+  L.leftLeg.rotation.x=-Math.sin(player.walk)*.72*player.speed;
+  L.rightLeg.rotation.x=Math.sin(player.walk)*.72*player.speed;
+  mara.position.y+=Math.abs(Math.sin(player.walk*2))*.035*player.speed*(onGround?1:0);
+}
+function followCamera(dt){
+  const distanceBack=10.5, height=3.3+orbitPitch*9;
+  const offsetX=Math.sin(orbitYaw)*distanceBack, offsetZ=Math.cos(orbitYaw)*distanceBack;
+  const target=v3(mara.position.x+offsetX,height+mara.position.y,mara.position.z+offsetZ);
+  camera.position.lerp(target,1-Math.pow(.0008,dt));
+  camera.lookAt(mara.position.x,1.65+mara.position.y,mara.position.z);
+}
+
+function updateEnding(dt){
+  endingTimer+=dt;timeRing.rotation.z+=dt*.8;
+  timeRing.material.opacity=.35+Math.sin(endingTimer*3)*.3;
+  ghost.position.y=1.8+Math.sin(endingTimer*1.8)*.8;
+  ghost.position.x=5+Math.sin(endingTimer*.65)*1.4;
+  plane.position.y=1.8+Math.sin(endingTimer*2.5)*.25;
+  const target=v3(12+Math.sin(endingTimer*.16)*12,10,-28-endingTimer*.25);
+  camera.position.lerp(target,Math.min(1,dt*.18));camera.lookAt(5,2,-7);
+  if(endingTimer>5.8 && !$("stinger").dataset.shown){
+    $("stinger").dataset.shown="yes";
+    $("ending").style.opacity=0;
+    setTimeout(()=>{
+      $("ending").style.display="none";
+      $("stinger").style.display="grid";
+      requestAnimationFrame(()=>$("stinger").style.opacity=1);
+      say("UNKNOWN VOICE","Mara... don't come home. I'm already here.",5);
+    },900);
+  }
+}
 $("title").style.display="grid";
+
 animate();
