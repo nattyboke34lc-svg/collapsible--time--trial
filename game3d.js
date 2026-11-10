@@ -281,7 +281,7 @@ for(let i=0;i<95;i++){const d=sphere(ambientDust,.025,[Math.random()*38-18,Math.
 const sunDisc=new THREE.Mesh(new THREE.SphereGeometry(5,20,12),new THREE.MeshBasicMaterial({color:0xffdfad}));
 sunDisc.position.set(-55,43,-110); scene.add(sunDisc);
 
-const player={speed:0,heading:0,walk:0};
+const player={speed:0,heading:0,walk:0,vx:0,vz:0};
 let state="title",introTime=0,gameTime=0,dialogueTimer=0,activeTarget=null,manifestRead=false,metElias=false,decisionMade="",soundOn=true,endingTimer=0,thoughtTimer=0;
 const keys={};
 const touch={up:false,down:false,left:false,right:false};
@@ -455,8 +455,18 @@ addEventListener("resize",()=>{
   camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();
   renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,1.5));
 });
-addEventListener("keydown",e=>{keys[e.code]=true;if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].includes(e.code))e.preventDefault();if(e.code==="KeyE"||e.code==="Enter")interact();});
-addEventListener("keyup",e=>keys[e.code]=false);
+// Capture movement keys before the browser can use them for page navigation or text selection.
+document.addEventListener("keydown",e=>{
+  const movement=["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"];
+  if(movement.includes(e.code)){e.preventDefault();e.stopPropagation();}
+  keys[e.code]=true;
+  if((e.code==="KeyE"||e.code==="Enter")&&!e.repeat){e.preventDefault();interact();}
+},{capture:true});
+document.addEventListener("keyup",e=>{
+  if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","Space"].includes(e.code)){e.preventDefault();e.stopPropagation();}
+  keys[e.code]=false;
+},{capture:true});
+window.addEventListener("blur",()=>{for(const key of Object.keys(keys))keys[key]=false;});
 $("enter").addEventListener("click",beginGame);
 $("skip").addEventListener("click",skipIntro);
 $("act").addEventListener("click",interact);
@@ -474,6 +484,8 @@ for(const [id,dir] of [["up","up"],["down","down"],["left","left"],["right","rig
 // Camera orbit and expanded movement. Mouse/touch drag rotates the follow camera.
 let orbitYaw=0, orbitPitch=.12, dragging=false, lastPointerX=0, lastPointerY=0, jumpVelocity=0, onGround=true;
 renderer.domElement.style.cursor="grab";
+renderer.domElement.style.touchAction="none";
+renderer.domElement.addEventListener("contextmenu",e=>e.preventDefault());
 renderer.domElement.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse"&&e.button!==0)return;dragging=true;lastPointerX=e.clientX;lastPointerY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId);});
 renderer.domElement.addEventListener("pointermove",e=>{
   if(!dragging)return;
@@ -485,14 +497,20 @@ function movePlayer(dt){
   let f=(keys.KeyW||keys.ArrowUp||touch.up?1:0)-(keys.KeyS||keys.ArrowDown||touch.down?1:0);
   let s=(keys.KeyD||keys.ArrowRight||touch.right?1:0)-(keys.KeyA||keys.ArrowLeft||touch.left?1:0);
   const mag=Math.hypot(f,s); if(mag>0){f/=mag;s/=mag;}
-  const running=keys.ShiftLeft||keys.ShiftRight;
-  const speed=running?10.5:6.1;
+  const running=(keys.ShiftLeft||keys.ShiftRight)&&mag>0;
+  const speed=running?11.8:6.4;
   const sin=Math.sin(orbitYaw), cos=Math.cos(orbitYaw);
-  const dx=(s*cos+f*sin)*speed*dt, dz=(s*sin-f*cos)*speed*dt;
-  if(mag>0){
+  const targetX=(s*cos+f*sin)*speed, targetZ=(s*sin-f*cos)*speed;
+  // Acceleration and friction make starts, stops and direction changes feel physical.
+  const response=mag>0?13.5:8.5;
+  player.vx=smooth(player.vx,targetX,Math.min(1,dt*response));
+  player.vz=smooth(player.vz,targetZ,Math.min(1,dt*response));
+  const dx=player.vx*dt, dz=player.vz*dt;
+  if(Math.hypot(player.vx,player.vz)>.18){
     mara.position.x=clamp(mara.position.x+dx,-35,35);
     mara.position.z=clamp(mara.position.z+dz,-38,52);
-    mara.rotation.y=Math.atan2(dx,-dz); player.walk+=dt*(running?15:9);
+    mara.rotation.y=Math.atan2(player.vx,-player.vz);
+    player.walk+=dt*(running?16:9.5);
   }
   if((keys.Space||keys.KeyJ)&&onGround){
     jumpVelocity=5.2;onGround=false;
