@@ -23,3 +23,5 @@ jobs:
       - name: Check key player journey and waitlist wiring
         run: |
           node -e "const fs=require('fs');const h=fs.readFileSync('web/last-flight.html','utf8');for(const s of ['BOARD THE AIRCRAFT','START THE ENGINES','CLIMB ▲','UNIDENTIFIED TRANSMISSION','TIMELINE INSTABILITY','UNKNOWN TIMELINE','https://form.jotform.com/263065632659060','navigator.share'])if(!h.includes(s))throw new Error('Missing expected feature: '+s);console.log('All key journey markers found.');"
+
+# Keep the syntax and journey smoke checks active for this isolated browser chapter.
