@@ -8,7 +8,7 @@
 <title>COLLAPSIBLE TIME | THE LAST FLIGHT</title>
 <style>
 :root{--gold:#e9c982;--white:#f5f2eb;--muted:#b8c2c8;--panel:rgba(8,17,27,.78)}
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101b27;color:var(--white);font-family:Inter,Arial,sans-serif}#stage{position:fixed;inset:0}canvas{display:block;width:100%;height:100%;outline:0}
+*{box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#101b27;color:var(--white);font-family:Inter,Arial,sans-serif;overscroll-behavior:none}#stage{position:fixed;inset:0}canvas{display:block;width:100%;height:100%;outline:0;touch-action:none}
 #collapse-flash{position:fixed;inset:0;z-index:18;background:#e8f6ff;opacity:0;pointer-events:none;transition:opacity .12s}#collapse-black{position:fixed;inset:0;z-index:19;background:#000;opacity:0;pointer-events:none;transition:opacity .5s ease}#vignette{position:fixed;inset:0;pointer-events:none;z-index:2;background:radial-gradient(ellipse at center,transparent 42%,rgba(3,8,15,.48) 100%)}
 #brand{position:fixed;z-index:4;top:22px;left:25px;letter-spacing:.28em;font-size:10px;font-weight:900;color:var(--gold);text-shadow:0 2px 10px #000}
 #chapter{font:italic 12px Georgia,serif;letter-spacing:.04em;color:#d7e0e1;margin-top:6px}
@@ -34,7 +34,7 @@ button{font:inherit;cursor:pointer;color:var(--white)}
 .choiceBtns button:hover{background:rgba(233,201,130,.16)}
 .choiceBtns span{display:block;color:var(--gold);font:900 9px Arial,sans-serif;letter-spacing:.18em;margin-bottom:8px}
 #controls{position:fixed;z-index:6;left:18px;bottom:18px;display:flex;gap:6px;opacity:0;transition:opacity .5s;pointer-events:none}
-#controls button{pointer-events:auto;width:42px;height:42px;border:1px solid #d9d2bd66;background:#0a1826aa;color:#f6eedc;font-size:17px;backdrop-filter:blur(6px);touch-action:none}
+#controls button{pointer-events:auto;width:42px;height:42px;border:1px solid #d9d2bd66;background:#0a1826aa;color:#f6eedc;font-size:17px;backdrop-filter:blur(6px);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
 #controls .stack{display:grid;grid-template-columns:42px 42px 42px;grid-template-rows:42px 42px;gap:5px}
 #up{grid-column:2}#left{grid-column:1;grid-row:2}#down{grid-column:2;grid-row:2}#right{grid-column:3;grid-row:2}
 #act{align-self:end;margin-left:8px!important;width:76px!important;font-size:10px!important;letter-spacing:.1em;color:var(--gold)!important}
