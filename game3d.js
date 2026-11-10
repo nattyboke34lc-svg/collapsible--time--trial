@@ -329,34 +329,6 @@ function findTarget(){
   for(const t of targets){if(!t.enabled)continue;const d=distance(p,t.obj.position);if(d<best){best=d;activeTarget=t.id;$("promptText").textContent=t.label;}}
   $("prompt").style.opacity=activeTarget?"1":"0";
 }
-function movePlayer(dt){
-  let f=(keys.KeyW||keys.ArrowUp||touch.up?1:0)-(keys.KeyS||keys.ArrowDown||touch.down?1:0);
-  let s=(keys.KeyD||keys.ArrowRight||touch.right?1:0)-(keys.KeyA||keys.ArrowLeft||touch.left?1:0);
-  const mag=Math.hypot(f,s);
-  if(mag>0){f/=mag;s/=mag;}
-  const running=keys.ShiftLeft||keys.ShiftRight;
-  const speed=running?8.4:5.2;
-  const dx=s*speed*dt, dz=-f*speed*dt;
-  if(mag>0){
-    mara.position.x=clamp(mara.position.x+dx,-26,26);
-    mara.position.z=clamp(mara.position.z+dz,-28,42);
-    mara.rotation.y=Math.atan2(dx,-dz);
-    player.walk+=dt*(running?13:8);
-  }
-  player.speed=smooth(player.speed,mag,Math.min(1,dt*9));
-  const L=mara.userData.limbs;
-  L.leftArm.rotation.x=Math.sin(player.walk)*.55*player.speed;
-  L.rightArm.rotation.x=-Math.sin(player.walk)*.55*player.speed;
-  L.leftLeg.rotation.x=-Math.sin(player.walk)*.62*player.speed;
-  L.rightLeg.rotation.x=Math.sin(player.walk)*.62*player.speed;
-  mara.position.y=Math.abs(Math.sin(player.walk*2))*.055*player.speed;
-}
-function followCamera(dt){
-  const target=v3(mara.position.x,2.4,mara.position.z+8.8);
-  camera.position.lerp(target,1-Math.pow(.001,dt));
-  const look=v3(mara.position.x,1.55,mara.position.z-1.5);
-  camera.lookAt(look);
-}
 function updateIntro(dt){
   introTime+=dt;keyCamera(introTime);
   const L=mara.userData.limbs;
