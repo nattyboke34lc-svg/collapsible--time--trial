@@ -1,5 +1,4 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js";
-import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js";
 
 const $ = id => document.getElementById(id);
 const stage = $("stage");
@@ -20,12 +19,12 @@ renderer.toneMappingExposure = 1.15;
 stage.appendChild(renderer.domElement);
 
 const clock = new THREE.Clock();
-const mat = (color, roughness=0.78, metalness=0) => new THREE.MeshStandardMaterial({ color, roughness, metalness });
+function makePaperMap(){const c=document.createElement("canvas");c.width=256;c.height=256;const x=c.getContext("2d");x.fillStyle="#eee9dc";x.fillRect(0,0,256,256);for(let i=0;i<1900;i++){const px=Math.random()*256,py=Math.random()*256;x.fillStyle=Math.random()>.5?"rgba(105,91,72,.045)":"rgba(255,255,255,.16)";x.fillRect(px,py,Math.random()*2+.3,Math.random()*5+.5);}for(let y=0;y<256;y+=32){x.fillStyle="rgba(111,101,83,.025)";x.fillRect(0,y,256,1);}const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.repeat.set(2,2);return t;}const paperMap=makePaperMap();const mat=(color,roughness=.9,metalness=0)=>new THREE.MeshStandardMaterial({color,roughness,metalness,map:paperMap});
 const M = {
   concrete: mat(0x777f7e), concrete2: mat(0x8d9690), navy: mat(0x263c4a), steel: mat(0x536b78,.4,.55),
   cream: mat(0xe5dfcf,.72), white: mat(0xe9e8df,.4,.15), gold: mat(0xc9a45d,.35,.65),
   glass: new THREE.MeshPhysicalMaterial({color:0x7898a3,roughness:.16,metalness:.28,transparent:true,opacity:.78}),
-  skin: mat(0xa96f57), hair: mat(0x28242a), jacket: mat(0x526f7b), jacketLight: mat(0x81979a),
+  skin: mat(0x9b604b), hair: mat(0x30242b), jacket: mat(0x627b91), jacketLight: mat(0xa5b5bd),
   pants: mat(0x293b49), rubber: mat(0x18232b), red: mat(0x9f554b), green: mat(0x71867c),
   warm: mat(0xc8b99a), dark: mat(0x17232d), amber: new THREE.MeshBasicMaterial({color:0xffd28a})
 };
@@ -223,48 +222,16 @@ ground();
   }
 }
 
-// Mara is now a fully rigged, animated human character. The model is CC0.
-const mara=new THREE.Group();
-mara.position.set(-9,0,10); scene.add(mara);
-const maraLoader=new GLTFLoader();
-maraLoader.load(
-  "https://cdn.jsdelivr.net/gh/rana-jatin/avatar-stage@main/demo/public/models/demo-avatar.glb",
-  gltf=>{
-    const avatar=gltf.scene;
-    const bounds=new THREE.Box3().setFromObject(avatar);
-    const height=Math.max(.01,bounds.max.y-bounds.min.y);
-    const scale=2.65/height;
-    avatar.scale.setScalar(scale);
-    avatar.position.y=-bounds.min.y*scale;
-    // The source model faces +Z; the game uses -Z as forward.
-    avatar.rotation.y=Math.PI;
-    avatar.traverse(node=>{
-      if(node.isMesh){node.castShadow=true;node.receiveShadow=true;}
-    });
-    mara.add(avatar);
-    const mixer=new THREE.AnimationMixer(avatar);
-    const actions={};
-    for(const clip of gltf.animations){
-      const action=mixer.clipAction(clip);
-      const name=clip.name.toLowerCase();
-      if(name.includes("idle"))actions.idle=action;
-      else if(name.includes("walk"))actions.walk=action;
-      else if(name.includes("run"))actions.run=action;
-      else if(name.includes("jump"))actions.jump=action;
-    }
-    mara.userData.mixer=mixer;
-    mara.userData.actions=actions;
-    mara.userData.currentMotion="";
-    setMaraMotion("idle");
-  },
-  undefined,
-  ()=>{
-    // Keep the scene playable if the external model host is unavailable.
-    const fallback=makePerson({coat:M.jacket,trousers:M.pants,hair:M.hair,female:true});
-    mara.add(fallback);
-    mara.userData.limbs=fallback.userData.limbs;
-  }
-);
+// Mara is built from the same layered paper language as the world, not an unrelated stock avatar.
+const mara=new THREE.Group();mara.position.set(-9,0,10);scene.add(mara);
+const maraFigure=makePerson({coat:M.jacket,trousers:M.pants,hair:M.hair,female:true});mara.add(maraFigure);
+const maraLimbs=maraFigure.userData.limbs;mara.userData.limbs=maraLimbs;
+// Lavender-grey folded-paper beanie and articulated paper-braid falls.
+const beanie=new THREE.Mesh(new THREE.IcosahedronGeometry(.31,2),mat(0xaaa8b7));beanie.scale.set(1.02,.56,.94);beanie.position.set(0,.34,.045);maraLimbs.head.add(beanie);
+box(maraLimbs.head,"beanie folded cuff",[.57,.105,.48],[0,.18,.015],mat(0xc5c1ce));
+for(const side of [-1,1]){const braid=new THREE.Group();braid.position.set(side*.245,-.12,.045);maraLimbs.head.add(braid);for(let n=0;n<7;n++){const bead=new THREE.Mesh(new THREE.IcosahedronGeometry(.078,1),mat(n%2?0x352a32:0x4b3542));bead.position.set(side*.035*Math.sin(n*1.1),-.105*n,.015);bead.scale.set(.88,1.08,.9);braid.add(bead);}box(braid,"braid paper tie",[.12,.055,.12],[0,-.72,0],mat(0xc3a3a0));}
+for(const side of [-1,1]){const lapel=box(maraFigure.userData.limbs.torso,"folded jacket lapel",[.19,.55,.055],[side*.13,.12,-.247],mat(side<0?0x9eb4c3:0x8099ad));lapel.rotation.z=side*-.18;box(maraFigure.userData.limbs.torso,"shoulder paper tab",[.32,.12,.44],[side*.36,.3,0],mat(0xc2cbd0));}
+const insignia=new THREE.Mesh(new THREE.TorusGeometry(.085,.018,5,18),M.gold);insignia.position.set(.18,.12,-.29);maraFigure.userData.limbs.torso.add(insignia);
 const elias=makePerson({coat:M.red,trousers:mat(0x343d43),hair:mat(0x393331)});
 elias.position.set(-7,0,-3.5); elias.rotation.y=.35; scene.add(elias);
 const manifest=box(scene,"flight manifest",[.65,.09,.9],[-1.2,1.51,-7],M.gold);
