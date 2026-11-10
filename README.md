@@ -21,7 +21,7 @@ Open the GitHub Pages preview after the cinematic rebuild is merged and deployed
 - **E / Enter:** interact
 - **Mobile:** on-screen directional controls and Interact button; drag the scene to orbit the camera
 - **Skip Intro:** available during the opening cinematic
-- **Sound:** toggles browser speech narration
+- **Music:** toggles an original, browser-synthesized atmospheric score\n- **Voice:** toggles browser speech narration\n- Mara’s private thoughts appear during key story moments
 
 ## Technology
 - Three.js 0.170 via jsDelivr ES modules
