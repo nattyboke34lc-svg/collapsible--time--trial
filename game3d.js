@@ -271,6 +271,7 @@ function keyCamera(t){
   camera.lookAt(new THREE.Vector3().lerpVectors(a.look,b.look,u));
 }
 function beginGame(){
+  startScore();
   $("title").style.opacity=0;setTimeout(()=>$("title").style.display="none",1050);
   $("skip").style.display="block";state="intro";introTime=0;showHud(false);
   say("CHILD","Mum? You promised you'd come home.",3.5);
@@ -300,12 +301,12 @@ function finishEnding(choice){
 function interact(){
   if(state!=="explore")return;
   if(activeTarget==="elias"){
-    metElias=true;state="talk";
+    metElias=true;state="talk";think("Two aircraft. One flight plan. Why does the second one have my name?",4.5);
     say("ELIAS","Mara. Your flight has appeared twice on the radar. Same aircraft. Same call sign. Two different times.",6);
     setObjective("The manifest is beside the cargo crate. Find out what changed.");
     setTimeout(()=>{if(state==="talk")state="explore";},6100);
   } else if(activeTarget==="manifest" && metElias && !manifestRead){
-    manifestRead=true;manifest.material=M.gold;state="manifest";
+    manifestRead=true;manifest.material=M.gold;state="manifest";think("I did not write tomorrow. So who did?",4.2);
     say("MARA","This flight log is dated tomorrow. But the departure stamp is mine.",5);
     setObjective("Board the aircraft. Something is waiting in the cockpit.");
     setTimeout(()=>{if(state==="manifest")state="explore";},5100);
@@ -383,7 +384,7 @@ function updateEnding(dt){
   camera.position.lerp(target,Math.min(1,dt*.12));camera.lookAt(5,2,-7);
 }
 function update(dt){
-  gameTime+=dt;dialogueTimer-=dt;if(dialogueTimer<=0 && $("caption").style.opacity!=="0")hideCaption();
+  gameTime+=dt;thoughtTimer-=dt;if(thoughtTimer<=0)$("thought").style.opacity=0;dialogueTimer-=dt;if(dialogueTimer<=0 && $("caption").style.opacity!=="0")hideCaption();
   if(state==="intro")updateIntro(dt);
   if(state==="explore"){movePlayer(dt);followCamera(dt);findTarget();}
   if(state==="talk"||state==="manifest"){followCamera(dt);findTarget();}
