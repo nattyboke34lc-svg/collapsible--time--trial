@@ -34,3 +34,13 @@ Cinematic, grounded aviation drama with warm natural light, environmental storyt
 
 ## Prototype boundaries
 This is a first vertical slice, not a full open-world production or a GTA-scale asset pipeline. The current scene uses procedural geometry; bespoke character models, facial animation, recorded voice acting, authored music, larger environments and expanded mission systems remain future production work.
+
+
+## Character and audio asset credits
+
+- Mara's rigged animated human base: **Animated Human (low poly)** by Quaternius, CC0 1.0, served from the `rana-jatin/avatar-stage` demo asset mirror. Original source: https://opengameart.org/content/animated-human-low-poly
+- Background score: **Epic Boss Battle** by Juhani Junkala, documented as CC0 in the source asset project's audio credits: https://github.com/jarlah/dungeon-haskell
+- Thunder ambience: SFXMint **City Night Ambience 04**, CC0 1.0: https://sfxmint.com/sounds/city-night-ambience-04
+- Cinematic reveal hits: SFXMint **Horror Stinger 54** and **Horror Stinger 71**, CC0 1.0: https://sfxmint.com/sounds/horror-stinger-54 and https://sfxmint.com/sounds/horror-stinger-71
+
+The game streams these audio assets from their published hosts. Their availability and browser playback still require device-level verification.
