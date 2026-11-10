@@ -157,6 +157,50 @@ function makePerson({coat=M.jacket, trousers=M.pants, hair=M.hair, female=false}
 const hangar=buildHangar();
 const plane=buildPlane(); plane.rotation.y=Math.PI;
 ground();
+
+// Scenic pass: layered mountain horizon, perimeter lights, service roads and airfield detail.
+{
+  const ridgeMat=mat(0x667d80), ridgeFar=mat(0x9aada8), treeMat=mat(0x405b50), trunkMat=mat(0x62594a);
+  for(let i=0;i<26;i++){
+    const x=-155+i*12.4, z=-115-(i%3)*17, height=18+(i%7)*4;
+    const peak=new THREE.Mesh(new THREE.ConeGeometry(17+(i%4)*3,height,5),i%2?ridgeMat:ridgeFar);
+    peak.position.set(x,height*.45,z); peak.rotation.y=(i%5)*.31; peak.scale.z=.58; peak.castShadow=false; scene.add(peak);
+    const snow=new THREE.Mesh(new THREE.ConeGeometry(5,height*.24,5),mat(0xc5cfca));
+    snow.position.set(x,height*.84,z+.1); snow.castShadow=false; scene.add(snow);
+  }
+  // Distant tree line gives the horizon scale and depth.
+  for(let i=0;i<76;i++){
+    const x=-145+i*3.9, z=-32-(i%5)*5, h=3.5+(i%6)*.65;
+    cylinder(scene,.13,.2,h*.38,[x,h*.19,z],trunkMat,7);
+    const crown=new THREE.Mesh(new THREE.ConeGeometry(1.4+(i%3)*.25,h,7),treeMat);
+    crown.position.set(x,h*.62,z); crown.castShadow=false; scene.add(crown);
+  }
+  // Apron markings, taxiway edge lights and small service equipment.
+  for(let z=-8;z<125;z+=18){
+    box(scene,"taxiway guide",[.16,.025,7],[19,-.12,z],M.gold,false,false);
+    for(const x of [-21,21]){
+      const lamp=new THREE.PointLight(0x9ec8d8,1.8,9,2); lamp.position.set(x,.55,z); scene.add(lamp);
+      sphere(scene,.09,[x,.18,z],new THREE.MeshBasicMaterial({color:0xb8e5ed}),[1,1,1]);
+    }
+  }
+  for(let i=0;i<7;i++){
+    const x=31+(i%3)*5, z=-17-Math.floor(i/3)*13;
+    box(scene,"service cart",[2.8,1.15,1.5],[x,.58,z],i%2?M.white:M.green);
+    box(scene,"cart windshield",[1.7,.55,.06],[x,.95,z-.77],M.glass,false,false);
+    for(const wx of [-.85,.85]) cylinder(scene,.35,.35,.18,[x+wx,.32,z],M.rubber,12,[0,0,Math.PI/2]);
+  }
+  // Clouds are broad, soft silhouettes rather than floating decorative dots.
+  const cloudMat=new THREE.MeshBasicMaterial({color:0xe2e5df,transparent:true,opacity:.52,depthWrite:false});
+  for(let i=0;i<13;i++){
+    const cloud=new THREE.Group();
+    for(let j=0;j<5;j++){
+      const puff=new THREE.Mesh(new THREE.SphereGeometry(1,12,8),cloudMat);
+      puff.position.set(j*2.1,Math.sin(j*1.7)*.45,0); puff.scale.set(2.8,1.05,1.5); cloud.add(puff);
+    }
+    cloud.position.set(-90+i*19,30+(i%4)*5,-95-(i%3)*18); cloud.scale.setScalar(1+(i%3)*.25); scene.add(cloud);
+  }
+}
+
 const mara=makePerson({coat:M.jacket,trousers:M.pants,hair:M.hair,female:true});
 mara.position.set(-9,0,10); scene.add(mara);
 const elias=makePerson({coat:M.red,trousers:mat(0x343d43),hair:mat(0x393331)});
@@ -348,5 +392,79 @@ for(const [id,dir] of [["up","up"],["down","down"],["left","left"],["right","rig
   const b=$(id);b.addEventListener("pointerdown",e=>{e.preventDefault();touch[dir]=true;b.setPointerCapture(e.pointerId);});
   ["pointerup","pointercancel","lostpointercapture"].forEach(ev=>b.addEventListener(ev,()=>touch[dir]=false));
 }
+
+// Camera orbit and expanded movement. Mouse/touch drag rotates the follow camera.
+let orbitYaw=0, orbitPitch=.12, dragging=false, lastPointerX=0, lastPointerY=0, jumpVelocity=0, onGround=true;
+renderer.domElement.style.cursor="grab";
+renderer.domElement.addEventListener("pointerdown",e=>{if(e.pointerType==="mouse"&&e.button!==0)return;dragging=true;lastPointerX=e.clientX;lastPointerY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId);});
+renderer.domElement.addEventListener("pointermove",e=>{
+  if(!dragging)return;
+  const dx=e.clientX-lastPointerX, dy=e.clientY-lastPointerY; lastPointerX=e.clientX;lastPointerY=e.clientY;
+  orbitYaw-=dx*.004; orbitPitch=clamp(orbitPitch+dy*.003,-.12,.48);
+});
+["pointerup","pointercancel","lostpointercapture"].forEach(ev=>renderer.domElement.addEventListener(ev,()=>dragging=false));
+function movePlayer(dt){
+  let f=(keys.KeyW||keys.ArrowUp||touch.up?1:0)-(keys.KeyS||keys.ArrowDown||touch.down?1:0);
+  let s=(keys.KeyD||keys.ArrowRight||touch.right?1:0)-(keys.KeyA||keys.ArrowLeft||touch.left?1:0);
+  const mag=Math.hypot(f,s); if(mag>0){f/=mag;s/=mag;}
+  const running=keys.ShiftLeft||keys.ShiftRight;
+  const speed=running?10.5:6.1;
+  const sin=Math.sin(orbitYaw), cos=Math.cos(orbitYaw);
+  const dx=(s*cos+f*sin)*speed*dt, dz=(s*sin-f*cos)*speed*dt;
+  if(mag>0){
+    mara.position.x=clamp(mara.position.x+dx,-35,35);
+    mara.position.z=clamp(mara.position.z+dz,-38,52);
+    mara.rotation.y=Math.atan2(dx,-dz); player.walk+=dt*(running?15:9);
+  }
+  if((keys.Space||keys.KeyJ)&&onGround){jumpVelocity=5.2;onGround=false;}
+  jumpVelocity-=15*dt; mara.position.y+=jumpVelocity*dt;
+  if(mara.position.y<=0){mara.position.y=0;jumpVelocity=0;onGround=true;}
+  player.speed=smooth(player.speed,mag,Math.min(1,dt*9));
+  const L=mara.userData.limbs;
+  L.leftArm.rotation.x=Math.sin(player.walk)*.62*player.speed;
+  L.rightArm.rotation.x=-Math.sin(player.walk)*.62*player.speed;
+  L.leftLeg.rotation.x=-Math.sin(player.walk)*.72*player.speed;
+  L.rightLeg.rotation.x=Math.sin(player.walk)*.72*player.speed;
+  mara.position.y+=Math.abs(Math.sin(player.walk*2))*.035*player.speed*(onGround?1:0);
+}
+function followCamera(dt){
+  const distanceBack=10.5, height=3.3+orbitPitch*9;
+  const offsetX=Math.sin(orbitYaw)*distanceBack, offsetZ=Math.cos(orbitYaw)*distanceBack;
+  const target=v3(mara.position.x+offsetX,height+mara.position.y,mara.position.z+offsetZ);
+  camera.position.lerp(target,1-Math.pow(.0008,dt));
+  camera.lookAt(mara.position.x,1.65+mara.position.y,mara.position.z);
+}
+
+// A final cinematic sting turns the chapter ending into a cliffhanger.
+function finishEnding(choice){
+  decisionMade=choice;state="ending";endingTimer=0;
+  $("choice").style.opacity=0;setTimeout(()=>$("choice").style.display="none",900);
+  $("endingTitle").innerHTML=choice==="signal"?"THE SIGNAL<br>ANSWERED.":"THE PROMISE<br>KEPT.";
+  $("endingText").textContent=choice==="signal"
+    ?"The transmission answers. But the voice on the other end knows Mara's name."
+    :"The clinic receives its supplies. Then the tower reports a third aircraft on the runway.";
+  $("ending").style.display="grid";requestAnimationFrame(()=>$("ending").style.opacity=1);
+  setObjective("Timeline impact recorded. Something else has crossed over.");
+}
+function updateEnding(dt){
+  endingTimer+=dt;timeRing.rotation.z+=dt*.8;
+  timeRing.material.opacity=.35+Math.sin(endingTimer*3)*.3;
+  ghost.position.y=1.8+Math.sin(endingTimer*1.8)*.8;
+  ghost.position.x=5+Math.sin(endingTimer*.65)*1.4;
+  plane.position.y=1.8+Math.sin(endingTimer*2.5)*.25;
+  const target=v3(12+Math.sin(endingTimer*.16)*12,10,-28-endingTimer*.25);
+  camera.position.lerp(target,Math.min(1,dt*.18));camera.lookAt(5,2,-7);
+  if(endingTimer>5.8 && !$("stinger").dataset.shown){
+    $("stinger").dataset.shown="yes";
+    $("ending").style.opacity=0;
+    setTimeout(()=>{
+      $("ending").style.display="none";
+      $("stinger").style.display="grid";
+      requestAnimationFrame(()=>$("stinger").style.opacity=1);
+      say("UNKNOWN VOICE","Mara... don't come home. I'm already here.",5);
+    },900);
+  }
+}
 $("title").style.display="grid";
+
 animate();
