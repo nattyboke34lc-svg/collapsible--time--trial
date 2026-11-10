@@ -89,7 +89,7 @@ function buildHangar() {
   return g;
 }
 function buildPlane() {
-  const g=new THREE.Group(); g.position.set(5,1.1,-7); scene.add(g);
+  const g=new THREE.Group(); g.position.set(5,1.8,-7); scene.add(g);
   // fuselage runs along local Z, nose points toward the runway
   const body=cylinder(g,.86,.7,22,[0,0,0],M.white,32,[Math.PI/2,0,0]);
   body.scale.set(1,1,1);
@@ -155,20 +155,20 @@ function makePerson({coat=M.jacket, trousers=M.pants, hair=M.hair, female=false}
   return root;
 }
 const hangar=buildHangar();
-const plane=buildPlane();
+const plane=buildPlane(); plane.rotation.y=Math.PI;
 ground();
 const mara=makePerson({coat:M.jacket,trousers:M.pants,hair:M.hair,female:true});
 mara.position.set(-9,0,10); scene.add(mara);
 const elias=makePerson({coat:M.red,trousers:mat(0x343d43),hair:mat(0x393331)});
 elias.position.set(-7,0,-3.5); elias.rotation.y=.35; scene.add(elias);
-const manifest=box(scene,"flight manifest",[.65,.09,.9],[-1.2,1.05,-7],M.gold);
+const manifest=box(scene,"flight manifest",[.65,.09,.9],[-1.2,1.51,-7],M.gold);
 manifest.rotation.y=.35;
 const crate=box(scene,"cargo crate",[1.8,1.5,1.8],[-1.2,.7,-7],mat(0x8a7960));
 box(scene,"crate straps",[1.84,.1,1.84],[-1.2,.85,-7],M.gold,false,false);
 const radio=box(scene,"radio console",[1.5,1.1,.7],[-7,1,-4.8],M.steel);
 box(scene,"radio screen",[.9,.52,.08],[-7,.99,-4.42],new THREE.MeshBasicMaterial({color:0x6da6a6}));
 const timeRing=new THREE.Mesh(new THREE.TorusGeometry(5,.12,12,96),new THREE.MeshBasicMaterial({color:0xe4c17a,transparent:true,opacity:.0}));
-timeRing.position.set(5,4,-10); timeRing.rotation.x=Math.PI/2; scene.add(timeRing);
+timeRing.position.set(5,4,-10); timeRing.rotation.x=0; scene.add(timeRing);
 const ghost=plane.clone(); ghost.traverse(o=>{if(o.isMesh){o.material=o.material.clone();o.material.transparent=true;o.material.opacity=.16;o.material.depthWrite=false;o.material.emissive=new THREE.Color(0x315e70);o.material.emissiveIntensity=.7;}}); ghost.position.set(5,1.1,-7); ghost.visible=false; scene.add(ghost);
 const ambientDust=new THREE.Group(); scene.add(ambientDust);
 for(let i=0;i<95;i++){const d=sphere(ambientDust,.025,[Math.random()*38-18,Math.random()*8+.5,Math.random()*38-20],new THREE.MeshBasicMaterial({color:0xe5d5b5,transparent:true,opacity:.25}),[1,1,1]);d.castShadow=false;}
@@ -315,8 +315,8 @@ function updateAnomaly(dt){
 function updateEnding(dt){
   endingTimer+=dt;timeRing.rotation.z+=dt*.5;
   timeRing.material.opacity=.5+Math.sin(endingTimer*2)*.25;
-  ghost.position.y=1.1+Math.sin(endingTimer*1.6)*.6;
-  plane.position.y=1.1+Math.sin(endingTimer*2)*.15;
+  ghost.position.y=1.8+Math.sin(endingTimer*1.6)*.6;
+  plane.position.y=1.8+Math.sin(endingTimer*2)*.15;
   const target=v3(5+Math.sin(endingTimer*.2)*8,8,-25);
   camera.position.lerp(target,Math.min(1,dt*.12));camera.lookAt(5,2,-7);
 }
