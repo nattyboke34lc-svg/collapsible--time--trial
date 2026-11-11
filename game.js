@@ -52,40 +52,73 @@ function makeText(txt,size,height){const canvas=document.createElement('canvas')
 // Mara: bespoke stylized 3D avatar with articulated limbs and soft idle animation
 const mara=group(scene,0,0,12);mara.rotation.y=0;
 const joints={};
-const torso=box(mara,.95,1.25,.52,blue,0,1.65,0);torso.rotation.z=-.035;
-box(mara,.72,.35,.55,blue2,0,2.22,.02);box(mara,.2,.56,.57,cream,0,1.75,.29);
+const torso=new THREE.Mesh(new THREE.CapsuleGeometry(.48,.62,5,10),blue);torso.position.set(0,1.66,0);torso.castShadow=true;mara.add(torso);
+const chest=box(mara,.72,.34,.52,blue2,0,2.15,.025);chest.rotation.z=-.025;
+const shirt=box(mara,.16,.56,.035,cream,0,1.73,.27);
+for(const s of [-1,1]){const strap=box(mara,.09,.74,.055,gold,s*.31,1.73,.285);strap.rotation.z=s*.12;}
+for(let y of [1.42,1.68,1.94])sphere(mara,.035,gold,0,y,.31,[1,1,.35]);
 const belt=box(mara,.98,.13,.55,gold,0,1.08,0);
 const neck=cone(mara,.18,.18,.3,coral,0,2.37,0,8);
 const head=group(mara,0,2.85,0);sphere(head,.48,coral,0,0,0,[.82,1.03,.78]);
+const face=group(head,0,0,0);
+for(const s of [-1,1]){
+ sphere(face,.055,white,s*.16,.025,.365,[1,.88,.35]);
+ sphere(face,.026,navy,s*.16,.025,.4,[.8,1,.4]);
+ sphere(face,.012,white,s*.17,.04,.414);
+ const brow=box(face,.13,.025,.035,navy,s*.16,.125,.365);brow.rotation.z=s*-.12;
+}
+const nose=sphere(face,.055,coral,0,-.075,.39,[.75,.85,.65]);
+const mouth=new THREE.Mesh(new THREE.TorusGeometry(.075,.012,5,16,Math.PI),paper(0x985f59));mouth.position.set(0,-.19,.37);mouth.rotation.z=Math.PI;face.add(mouth);
+for(const s of [-1,1])sphere(face,.085,paper(0xe7a18d),s*.29,-.13,.315,[1,.6,.3]);
 // hair cap and braids
 sphere(head,.49,navy,0,.22,-.08,[1.03,.65,.91]);
 for(let s of [-1,1]){for(let k=0;k<5;k++){sphere(head,.105,k%2?navy:paper(0x594454),s*(.42+.025*Math.sin(k)), -.18-k*.19,.03,[.9,1.18,.9])}}
 const beanie=sphere(head,.49,paper(0xa8a6b8),0,.48,-.02,[1.02,.48,.95]);const brim=box(head,.88,.12,.75,paper(0xc6c2cd),0,.31,.12);brim.rotation.z=-.04;
 for(let s of [-1,1]){sphere(head,.045,dark,s*.17,.02,.39,[.7,1.3,.4]);sphere(head,.06,paper(0xe5a18c),s*.27,-.12,.35,[1.2,.6,.4])}
 const smile=box(head,.16,.035,.04,paper(0x8e4d4b),0,-.2,.4);
-function limb(parent,upper,lower,material,x,y,z,arm=false){const pivot=group(parent,x,y,z);const a=box(pivot,arm?.22:.3,upper,arm?.22:.3,material,0,-upper/2,0);const elbow=group(pivot,0,-upper,0);const b=box(elbow,arm?.19:.26,lower,arm?.19:.26,material,0,-lower/2,0);const hand=sphere(elbow,.14,coral,0,-lower,0);return {pivot,elbow,upper,lower}}
+function limb(parent,upper,lower,material,x,y,z,arm=false){
+ const pivot=group(parent,x,y,z);
+ const radius=arm?.125:.17;
+ const a=new THREE.Mesh(new THREE.CapsuleGeometry(radius,Math.max(.15,upper-radius*2),5,8),material);a.position.y=-upper/2;a.castShadow=true;pivot.add(a);
+ const elbow=group(pivot,0,-upper,0);
+ sphere(elbow,radius*.92,material,0,0,0);
+ const b=new THREE.Mesh(new THREE.CapsuleGeometry(radius*.88,Math.max(.12,lower-radius*1.7),5,8),material);b.position.y=-lower/2;b.castShadow=true;elbow.add(b);
+ const hand=group(elbow,0,-lower,0);sphere(hand,.145,coral,0,0,0,[.9,1,.8]);
+ for(let f=-1;f<=1;f++)sphere(hand,.035,coral,f*.055,-.1,.04,[.8,1,.8]);
+ return {pivot,elbow,upper,lower,hand};
+}
 joints.leftArm=limb(mara,.72,.62,blue,-.58,2.05,0,true);joints.rightArm=limb(mara,.72,.62,blue,.58,2.05,0,true);
 joints.leftLeg=limb(mara,.72,.62,navy,-.27,1.08,0,false);joints.rightLeg=limb(mara,.72,.62,navy,.27,1.08,0,false);
-for(let s of [-1,1]){const boot=box(mara,.36,.2,.56,cream,s*.27,.12,.1);}
+for(let s of [-1,1]){
+ const boot=box(mara,.38,.23,.58,cream,s*.27,.12,.12);boot.rotation.x=-.08;
+ const sole=box(mara,.39,.065,.59,navy,s*.27,.035,.12);
+ const cuff=box(mara,.32,.13,.31,gold,s*.27,.28,.02);
+}
 // Camera, movement and state
-const clock=new THREE.Clock();let started=false,ended=false,choiceOpen=false,score=0,axisX=0,axisY=0,keys={},near='',lastSubtitle=0,walkT=0,collapseT=0,collapseActive=false,muted=false;
+const clock=new THREE.Clock();let started=false,ended=false,choiceOpen=false,score=0,axisX=0,axisY=0,keys={},near='',lastSubtitle=0,walkT=0,collapseT=0,collapseActive=false,muted=false,audioCtx=null;
 const ui=id=>document.getElementById(id);
+function sound(frequency=440,duration=.12,type='sine',volume=.035){
+ if(muted||!audioCtx)return;
+ const osc=audioCtx.createOscillator(),gain=audioCtx.createGain();osc.type=type;osc.frequency.setValueAtTime(frequency,audioCtx.currentTime);osc.frequency.exponentialRampToValueAtTime(Math.max(45,frequency*.62),audioCtx.currentTime+duration);
+ gain.gain.setValueAtTime(volume,audioCtx.currentTime);gain.gain.exponentialRampToValueAtTime(.0001,audioCtx.currentTime+duration);
+ osc.connect(gain);gain.connect(audioCtx.destination);osc.start();osc.stop(audioCtx.currentTime+duration);
+}
 function subtitle(text,duration=4){ui('subtitle').textContent=text;ui('subtitle').style.opacity=1;lastSubtitle=duration}
 function setTask(text){ui('task').textContent=text}
 const targets=[{id:'board',name:'flight board',obj:board,pos:new THREE.Vector3(-8,0,-5),done:false},{id:'radio',name:'radio',obj:radio,pos:new THREE.Vector3(10,0,-4),done:false},{id:'gate',name:'threshold',obj:gate,pos:new THREE.Vector3(0,0,7),done:false}];
 const cameraTarget=new THREE.Vector3(0,2.2,12);camera.position.set(0,5.2,20);camera.lookAt(cameraTarget);
 function showChoice(){choiceOpen=true;ui('choice').style.display='grid';requestAnimationFrame(()=>ui('choice').style.opacity=1);subtitle('MARA: Every choice leaves a mark. But what does this world need from me?',5)}
-function finish(signal){ended=true;choiceOpen=false;ui('choice').style.display='none';const impact=signal?84:72;score=impact;ui('score').textContent=String(score).padStart(2,'0');ui('endTitle').textContent=signal?'THE SIGNAL CARRIES':'THE PROMISE HOLDS';ui('endText').textContent=signal?'You followed the voice beyond the known timeline. The signal becomes a path, and someone on the other side remembers that you came.':'You protected the people who trusted you. The timeline records a quieter kind of courage: the lives that continued because you chose to stay.';ui('impactline').textContent='IMPACT INDEX  '+impact+'  ·  MEMORY TRACE ESTABLISHED';ui('ending').style.display='grid';requestAnimationFrame(()=>ui('ending').style.opacity=1);if(signal){collapseActive=true;collapseT=0}}
-function interact(){if(!started||ended||choiceOpen)return;if(!near){subtitle('Move closer to something that catches your attention.',2);return}const t=targets.find(q=>q.id===near);if(!t||t.done)return;t.done=true;if(near==='board'){score+=20;ui('score').textContent=String(score).padStart(2,'0');setTask('Find the voice on the radio');subtitle('The flight board lists a departure that has not happened yet. Your name is already on the manifest.',5)}else if(near==='radio'){score+=25;ui('score').textContent=String(score).padStart(2,'0');setTask('Approach the threshold');subtitle('RADIO: Mara, if you can hear this, the timeline is already folding. Someone needs you to choose.',6)}else{score+=15;ui('score').textContent=String(score).padStart(2,'0');showChoice()}}
-function move(dt){let ix=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+axisX;let iz=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0)+axisY;const len=Math.hypot(ix,iz);if(len>1){ix/=len;iz/=len}const moving=len>.08;if(moving){mara.position.x=THREE.MathUtils.clamp(mara.position.x+ix*dt*6.1,-16,16);mara.position.z=THREE.MathUtils.clamp(mara.position.z+iz*dt*6.1,-1,20);mara.rotation.y=Math.atan2(ix,iz);walkT+=dt*9}else{walkT+=dt*1.3}const swing=moving?Math.sin(walkT)*.48:Math.sin(walkT)*.045;joints.leftLeg.pivot.rotation.x=swing;joints.rightLeg.pivot.rotation.x=-swing;joints.leftArm.pivot.rotation.x=-swing*.55-.08;joints.rightArm.pivot.rotation.x=swing*.55-.08;head.rotation.y=Math.sin(walkT*.45)*.045;head.rotation.x=Math.sin(walkT*.7)*.018;mara.position.y=moving?Math.abs(Math.sin(walkT*2))*.055:Math.sin(walkT)*.018;const desired=new THREE.Vector3(mara.position.x*.58,4.2,mara.position.z+8.8);camera.position.lerp(desired,1-Math.pow(.001,dt));cameraTarget.set(mara.position.x,2.15,mara.position.z-.4);camera.lookAt(cameraTarget);
+function finish(signal){sound(signal?180:390,.65,'sawtooth',.04);ended=true;choiceOpen=false;ui('choice').style.display='none';const impact=signal?84:72;score=impact;ui('score').textContent=String(score).padStart(2,'0');ui('endTitle').textContent=signal?'THE SIGNAL CARRIES':'THE PROMISE HOLDS';ui('endText').textContent=signal?'You followed the voice beyond the known timeline. The signal becomes a path, and someone on the other side remembers that you came.':'You protected the people who trusted you. The timeline records a quieter kind of courage: the lives that continued because you chose to stay.';ui('impactline').textContent='IMPACT INDEX  '+impact+'  ·  MEMORY TRACE ESTABLISHED';ui('ending').style.display='grid';requestAnimationFrame(()=>ui('ending').style.opacity=1);if(signal){collapseActive=true;collapseT=0;ui('endText').textContent='The air folds inward. The runway, the hangar, the sky: all of it becomes a moving seam between lives. Your choice opens the way forward.';}}
+function interact(){if(!started||ended||choiceOpen)return;sound(520,.09,'triangle',.025);if(!near){subtitle('Move closer to something that catches your attention.',2);return}const t=targets.find(q=>q.id===near);if(!t||t.done)return;t.done=true;if(near==='board'){score+=20;ui('score').textContent=String(score).padStart(2,'0');setTask('Find the voice on the radio');subtitle('The flight board lists a departure that has not happened yet. Your name is already on the manifest.',5)}else if(near==='radio'){score+=25;ui('score').textContent=String(score).padStart(2,'0');setTask('Approach the threshold');subtitle('RADIO: Mara, if you can hear this, the timeline is already folding. Someone needs you to choose.',6)}else{score+=15;ui('score').textContent=String(score).padStart(2,'0');showChoice()}}
+function move(dt){let ix=(keys.KeyD||keys.ArrowRight?1:0)-(keys.KeyA||keys.ArrowLeft?1:0)+axisX;let iz=(keys.KeyS||keys.ArrowDown?1:0)-(keys.KeyW||keys.ArrowUp?1:0)+axisY;const len=Math.hypot(ix,iz);if(len>1){ix/=len;iz/=len}const moving=len>.08;if(moving){mara.position.x=THREE.MathUtils.clamp(mara.position.x+ix*dt*6.1,-16,16);mara.position.z=THREE.MathUtils.clamp(mara.position.z+iz*dt*6.1,-10,20);mara.rotation.y=Math.atan2(ix,iz);walkT+=dt*9}else{walkT+=dt*1.3}const swing=moving?Math.sin(walkT)*.48:Math.sin(walkT)*.045;joints.leftLeg.pivot.rotation.x=swing;joints.rightLeg.pivot.rotation.x=-swing;joints.leftArm.pivot.rotation.x=-swing*.55-.08;joints.rightArm.pivot.rotation.x=swing*.55-.08;joints.leftArm.elbow.rotation.x=-.12+Math.max(0,swing)*.25;joints.rightArm.elbow.rotation.x=-.12-Math.max(0,-swing)*.25;head.rotation.y=Math.sin(walkT*.45)*.045;head.rotation.x=Math.sin(walkT*.7)*.018;mara.position.y=moving?Math.abs(Math.sin(walkT*2))*.055:Math.sin(walkT)*.018;const desired=new THREE.Vector3(mara.position.x*.58,4.2,mara.position.z+8.8);camera.position.lerp(desired,1-Math.pow(.001,dt));cameraTarget.set(mara.position.x,2.15,mara.position.z-.4);camera.lookAt(cameraTarget);
 near='';let best=3.15;for(const t of targets){if(t.done)continue;const d=mara.position.distanceTo(t.pos);if(d<best){best=d;near=t.id}}ui('hint').style.opacity=near?1:0;ui('hint').textContent=near?'E  ·  '+targets.find(t=>t.id===near).name.toUpperCase()+'  ·  INTERACT':'';}
 // Timeline fracture: luminous folded aperture, expanding rings and a controlled warp
-const rift=group(scene,0,5,-8);const ringMat=new THREE.MeshBasicMaterial({color:0xffe6b3,transparent:true,opacity:0,side:THREE.DoubleSide});const rings=[];for(let i=0;i<5;i++){const ring=new THREE.Mesh(new THREE.TorusGeometry(2.2+i*.55,.035,8,72),ringMat.clone());ring.rotation.y=.18+i*.22;ring.position.z=-i*.18;rift.add(ring);rings.push(ring)}const core=new THREE.Mesh(new THREE.CircleGeometry(2.15,48),new THREE.MeshBasicMaterial({color:0x263f58,transparent:true,opacity:0,side:THREE.DoubleSide}));rift.add(core);const riftLight=new THREE.PointLight(0xffdca1,0,18);rift.add(riftLight);
-function collapse(dt){if(!collapseActive)return;collapseT+=dt;const p=Math.min(1,collapseT/5.2);rings.forEach((r,i)=>{r.material.opacity=Math.sin(Math.min(1,p*1.5)*Math.PI)*.72;r.scale.setScalar(1+p*(.55+i*.08));r.rotation.z+=dt*(i%2?-.5:.5)});core.material.opacity=Math.min(.88,p*.9);riftLight.intensity=p*3.5;rift.scale.setScalar(.6+p*.7);if(p>.55){const pulse=1+Math.sin(collapseT*12)*.025;rift.scale.setScalar((.6+p*.7)*pulse)}}
+const rift=group(scene,0,5.1,1.5);rift.visible=false;const ringMat=new THREE.MeshBasicMaterial({color:0xffe6b3,transparent:true,opacity:0,side:THREE.DoubleSide});const rings=[];for(let i=0;i<5;i++){const ring=new THREE.Mesh(new THREE.TorusGeometry(2.2+i*.55,.035,8,72),ringMat.clone());ring.rotation.y=.18+i*.22;ring.position.z=-i*.18;rift.add(ring);rings.push(ring)}const core=new THREE.Mesh(new THREE.CircleGeometry(2.15,48),new THREE.MeshBasicMaterial({color:0x263f58,transparent:true,opacity:0,side:THREE.DoubleSide}));rift.add(core);const riftLight=new THREE.PointLight(0xffdca1,0,18);rift.add(riftLight);
+function collapse(dt){if(!collapseActive)return;rift.visible=true;collapseT+=dt;const p=Math.min(1,collapseT/5.2);rings.forEach((r,i)=>{r.material.opacity=Math.sin(Math.min(1,p*1.5)*Math.PI)*.72;r.scale.setScalar(1+p*(.55+i*.08));r.rotation.z+=dt*(i%2?-.5:.5)});core.material.opacity=Math.min(.88,p*.9);riftLight.intensity=p*3.5;rift.scale.setScalar(.6+p*.7);if(p>.55){const pulse=1+Math.sin(collapseT*12)*.025;rift.scale.setScalar((.6+p*.7)*pulse)}}
 function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.04);if(started&&!ended&&!choiceOpen){move(dt);if(lastSubtitle>0&&(lastSubtitle-=dt)<=0)ui('subtitle').style.opacity=0;}collapse(dt);clouds.forEach((c,i)=>{c.position.x+=dt*(i%2?-.22:.17);if(c.position.x>105)c.position.x=-105;if(c.position.x< -105)c.position.x=105});prop.rotation.z+=dt*2.2;renderer.render(scene,camera)}
-function begin(){started=true;ui('title').style.opacity=0;setTimeout(()=>ui('title').style.display='none',700);setTask('Inspect the flight board');subtitle('MARA: The air feels different here. Like the whole world is holding its breath.',5)}
+function begin(){started=true;if(!muted){audioCtx=new (window.AudioContext||window.webkitAudioContext)();sound(260,.32,'sine',.025);}ui('title').style.opacity=0;setTimeout(()=>ui('title').style.display='none',700);setTask('Inspect the flight board');subtitle('MARA: The air feels different here. Like the whole world is holding its breath.',5)}
 ui('begin').addEventListener('click',begin);ui('interact').addEventListener('click',interact);ui('choiceSignal').addEventListener('click',()=>finish(true));ui('choicePromise').addEventListener('click',()=>finish(false));ui('restart').addEventListener('click',()=>location.reload());
-ui('sound').addEventListener('click',()=>{muted=!muted;ui('sound').textContent=muted?'SOUND OFF':'SOUND ON';});
+ui('sound').addEventListener('click',()=>{muted=!muted;ui('sound').textContent=muted?'SOUND OFF':'SOUND ON';if(!muted&&!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(!muted)sound(620,.12,'sine',.025);});
 // Keyboard and touch joystick
 addEventListener('keydown',e=>{keys[e.code]=true;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();if(e.code==='KeyE'||e.code==='Enter')interact()});addEventListener('keyup',e=>keys[e.code]=false);addEventListener('blur',()=>keys={});
 const stick=ui('stick'),knob=ui('knob');let pointer=null;function updateStick(e){const r=stick.getBoundingClientRect();const dx=e.clientX-(r.left+r.width/2),dy=e.clientY-(r.top+r.height/2),max=r.width*.34,l=Math.hypot(dx,dy),scale=l>max?max/l:1;axisX=dx*scale/max;axisY=dy*scale/max;knob.style.transform='translate('+dx*scale+'px,'+dy*scale+'px)'}function resetStick(){pointer=null;axisX=axisY=0;knob.style.transform='translate(0,0)'}stick.addEventListener('pointerdown',e=>{pointer=e.pointerId;stick.setPointerCapture(pointer);updateStick(e)});stick.addEventListener('pointermove',e=>{if(pointer===e.pointerId)updateStick(e)});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>stick.addEventListener(ev,resetStick));
