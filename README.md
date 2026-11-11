@@ -1,32 +1,36 @@
 # COLLAPSIBLE TIME — THE FIRST THRESHOLD
 
-A browser-based 3D vertical slice in the Collapsible Time universe.
+A browser-based 3D vertical slice for the Collapsible Time universe.
 
-## Play
-Open the repository's GitHub Pages deployment when enabled. The scene loads Three.js 0.170 as an ES module from jsDelivr, so an internet connection is required.
+## Play locally
+Serve this folder with any static web server and open it in a modern browser. The game imports Three.js 0.170 from jsDelivr, so an internet connection is required. Opening `index.html` directly as a file may be blocked by browser module/CORS rules.
 
-## Current slice
-- A real-time 3D airport/hangar environment with a small passenger aircraft.
-- An original stylized 3D pilot avatar, Mara, with a knit beanie, braids, layered flight suit and procedural walk/idle animation.
-- Third-person follow camera and keyboard/touch movement.
-- Three interactive story points: flight board, radio and timeline threshold.
-- A branching choice with an impact index and a visual timeline-fracture sequence.
-- Responsive HUD and mobile joystick.
+## Current experience
+- Real-time 3D papercraft-inspired airport, hangar, runway, aircraft, hills, trees and moving cloud clusters.
+- Original procedural 3D pilot character Mara with a beanie, braids, expressive face, flight-suit details, rounded articulated limbs and walk/idle motion.
+- Third-person camera, keyboard controls and touch joystick.
+- World-space beacons and interaction rings for the flight board, radio and timeline threshold.
+- A branching story decision with an impact index.
+- A visible timeline aperture with animated rings and synthesized interaction/transition sounds.
+- Responsive HUD and mobile layout.
 
 ## Controls
 - WASD / arrow keys: move
 - E / Enter: interact
 - Mobile: on-screen joystick and Interact button
+- Sound button: toggle synthesized sound effects
 
-## Technology and art direction
+## Technology
 - Three.js 0.170, HTML, CSS and JavaScript.
-- Procedural 3D geometry; no paid assets or subscriptions.
-- Handcrafted papercraft-inspired 3D: folded silhouettes, warm natural light, paper-like materials, pastel aviation palette and surreal timeline effects.
-- Designed as a lightweight browser prototype for laptop and mobile testing.
+- Procedural geometry and original browser-generated sound effects.
+- No paid assets, subscriptions or external model downloads.
 
-## Scope and honest status
-This is a new 3D vertical slice, not a Fortnite-scale production. It establishes the visual and interaction foundation. The current avatar is built from procedural geometry, not a fully rigged Blender character; bespoke Blender modelling, facial animation, richer movement, sound design, deeper choice consequences, multiplayer and additional worlds remain future work.
+## Art direction
+Handcrafted dimensional papercraft, warm natural light, soft pastel aviation palette, tactile paper-like materials, folded silhouettes and surreal timeline phenomena. The visual identity is intended to belong to Collapsible Time, not imitate another game's characters or environments.
 
-Olympiad-style challenges are intentionally not in this first aviation chapter. They can later become timeline-specific knowledge trials, optional challenges or a distinct progression system without interrupting the story.
+## Current limitations
+This is an early 3D vertical slice, not a finished multiplayer game. Mara is currently procedural geometry, not a Blender-authored rigged production character. A faithful recreation of the original reference image, detailed facial animation, high-quality character rig, richer cockpit and flight sequence, persistent consequence system, multiplayer, additional timelines, accessibility settings and full playtesting remain future production work.
 
-The previous 2D prototype source remains in `paper-world.js` for reference, but the new page loads `game.js`.
+Olympiad-style challenges are not in this opening aviation chapter. They are planned as future optional Timeline Trials, integrated into world-specific discovery and progression rather than inserted as unrelated quiz pop-ups.
+
+The earlier 2D prototype remains in `paper-world.js` for reference. The current page loads `game.js`.
