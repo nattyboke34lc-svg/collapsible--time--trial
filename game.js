@@ -50,7 +50,7 @@ const gate=group(scene,0,0,7);for(let x of [-2.8,2.8])box(gate,.38,5.4,.5,gold,x
 const gateText=makeText('THRESHOLD',2.3,.24);gateText.position.set(-1.15,4.12,.36);gate.add(gateText);
 function makeText(txt,size,height){const canvas=document.createElement('canvas');canvas.width=1024;canvas.height=128;const ctx=canvas.getContext('2d');ctx.clearRect(0,0,1024,128);ctx.font='700 54px Arial';ctx.fillStyle='#fff8e9';ctx.textAlign='left';ctx.fillText(txt,15,83);const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;const m=new THREE.Mesh(new THREE.PlaneGeometry(size,height),new THREE.MeshBasicMaterial({map:tex,transparent:true,side:THREE.DoubleSide}));return m}
 // Mara: bespoke stylized 3D avatar with articulated limbs and soft idle animation
-const mara=group(scene,0,0,12);mara.rotation.y=Math.PI;
+const mara=group(scene,0,0,12);mara.rotation.y=0;
 const joints={};
 const torso=box(mara,.95,1.25,.52,blue,0,1.65,0);torso.rotation.z=-.035;
 box(mara,.72,.35,.55,blue2,0,2.22,.02);box(mara,.2,.56,.57,cream,0,1.75,.29);
