@@ -1,46 +1,32 @@
-# COLLAPSIBLE TIME — THE LAST FLIGHT
+# COLLAPSIBLE TIME — THE FIRST THRESHOLD
 
-A cinematic third-person story prototype set inside the Collapsible Time universe.
+A browser-based 3D vertical slice in the Collapsible Time universe.
 
 ## Play
-Open the GitHub Pages preview after the cinematic rebuild is merged and deployed.
+Open the repository's GitHub Pages deployment when enabled. The scene loads Three.js 0.170 as an ES module from jsDelivr, so an internet connection is required.
 
-## Current playable slice
-- A real-time 3D airport environment built with Three.js.
-- A third-person pilot character with animated movement.
-- A cinematic opening sequence with dialogue and subtitles.
-- An exploration loop: meet Elias, inspect the flight manifest, and approach the aircraft.
-- A branching decision that changes the chapter outcome.
-- A timeline anomaly with a duplicated aircraft and a visual time fracture.
+## Current slice
+- A real-time 3D airport/hangar environment with a small passenger aircraft.
+- An original stylized 3D pilot avatar, Mara, with a knit beanie, braids, layered flight suit and procedural walk/idle animation.
+- Third-person follow camera and keyboard/touch movement.
+- Three interactive story points: flight board, radio and timeline threshold.
+- A branching choice with an impact index and a visual timeline-fracture sequence.
+- Responsive HUD and mobile joystick.
 
 ## Controls
-- **WASD / Arrow keys:** move with acceleration and momentum
-- **Shift:** sprint
-- **Space / J:** jump
-- **Drag the scene:** orbit the follow camera
-- **E / Enter:** interact
-- **Mobile:** analogue on-screen joystick and Interact button; drag the scene to orbit the camera
-- **Skip Intro:** available during the opening cinematic
-- **Music:** toggles an original, browser-synthesized atmospheric score\n- **Voice:** toggles browser speech narration\n- Mara’s private thoughts appear during key story moments
+- WASD / arrow keys: move
+- E / Enter: interact
+- Mobile: on-screen joystick and Interact button
 
-## Technology
-- Three.js 0.170 via jsDelivr ES modules
-- HTML, CSS and JavaScript
-- Procedural 3D environment and aircraft, with a streamed rigged human base model for Mara
-- No paid assets or game-engine subscription required
+## Technology and art direction
+- Three.js 0.170, HTML, CSS and JavaScript.
+- Procedural 3D geometry; no paid assets or subscriptions.
+- Handcrafted papercraft-inspired 3D: folded silhouettes, warm natural light, paper-like materials, pastel aviation palette and surreal timeline effects.
+- Designed as a lightweight browser prototype for laptop and mobile testing.
 
-## Visual direction
-Cinematic, grounded aviation drama with warm natural light, environmental storytelling, third-person exploration and surreal timeline effects. This is an original visual direction, not a reproduction of GTA or another commercial game's protected assets.
+## Scope and honest status
+This is a new 3D vertical slice, not a Fortnite-scale production. It establishes the visual and interaction foundation. The current avatar is built from procedural geometry, not a fully rigged Blender character; bespoke Blender modelling, facial animation, richer movement, sound design, deeper choice consequences, multiplayer and additional worlds remain future work.
 
-## Prototype boundaries
-This is a first vertical slice, not a full open-world production or a GTA-scale asset pipeline. The current scene uses procedural geometry; bespoke character models, facial animation, recorded voice acting, authored music, larger environments and expanded mission systems remain future production work.
+Olympiad-style challenges are intentionally not in this first aviation chapter. They can later become timeline-specific knowledge trials, optional challenges or a distinct progression system without interrupting the story.
 
-
-## Character and audio asset credits
-
-- Mara's rigged animated human base: **Animated Human (low poly)** by Quaternius, CC0 1.0, served from the `rana-jatin/avatar-stage` demo asset mirror. Original source: https://opengameart.org/content/animated-human-low-poly
-- Background score: **Epic Boss Battle** by Juhani Junkala, documented as CC0 in the source asset project's audio credits: https://github.com/jarlah/dungeon-haskell
-- Thunder ambience: SFXMint **City Night Ambience 04**, CC0 1.0: https://sfxmint.com/sounds/city-night-ambience-04
-- Cinematic reveal hits: SFXMint **Horror Stinger 54** and **Horror Stinger 71**, CC0 1.0: https://sfxmint.com/sounds/horror-stinger-54 and https://sfxmint.com/sounds/horror-stinger-71
-
-The game streams these audio assets from their published hosts. Their availability and browser playback still require device-level verification.
+The previous 2D prototype source remains in `paper-world.js` for reference, but the new page loads `game.js`.
